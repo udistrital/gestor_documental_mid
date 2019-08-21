@@ -4,8 +4,7 @@ workspace:
   when:
     branch: [master, test]
     
-pipeline:
-            
+pipeline: 
   # build and push docker image to docker hub
   publish_dockerhub:
     image: plugins/docker
