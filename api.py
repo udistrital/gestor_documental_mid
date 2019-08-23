@@ -3,6 +3,7 @@ from flask import Flask, Response, request
 from flask_restful import Api, Resource
 import os
 import sys
+import pprint
 
 # Nuxeo client
 nuxeo = None
@@ -45,9 +46,9 @@ class document(Resource):
     def post(self, filename, file_object, properties):
         pass
     
-    def get(self):
+    def get(self, uid):
         print("Start fetching")
-        ##pprint.pprint(nuxeo.documents.get(path='/default-domain/oas'))
+        pprint.pprint(nuxeo.documents.get(uid=uid))
         print("Finish fetching")
 
 class metadata(Resource):
@@ -57,7 +58,7 @@ class metadata(Resource):
         return set_metadata(uid, data['properties'])
 
 api.add_resource(metadata, '/document/<string:uid>/metadata')
-api.add_resource(document, '/document')
+api.add_resource(document, '/document/<string:uid>')
 
 if __name__ == "__main__":
     nuxeo = init_nuxeo()
