@@ -3,7 +3,6 @@ from flask import Flask, Response, request
 from flask_restful import Api, Resource
 import os
 import sys
-import pprint
 
 # Nuxeo client
 nuxeo = None
@@ -31,7 +30,8 @@ def set_metadata(uid, metadata):
             doc.properties[prop] = value
         doc.save()
         return Response("{'Status':'200'}", status=200, mimetype='application/json')
-    except:
+    except Exception as e:
+        print("type error: " + str(e))
         return Response("{'Status':'500'}", status=500, mimetype='application/json')
 
 
@@ -47,7 +47,7 @@ class document(Resource):
     
     def get(self):
         print("Start fetching")
-        pprint.pprint(nuxeo.documents.get(path='/default-domain/oas'))
+        ##pprint.pprint(nuxeo.documents.get(path='/default-domain/oas'))
         print("Finish fetching")
 
 class metadata(Resource):
