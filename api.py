@@ -50,7 +50,7 @@ class document(Resource):
     def get(self, uid):
         logging.info("Start fetching")
         logging.info(pformat(nuxeo.documents.get(uid=uid)))
-        logging.info("Finish fetching")
+        logging.info("Finish fetching ")
 
 class metadata(Resource):
         
