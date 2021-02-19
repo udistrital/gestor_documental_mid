@@ -3,7 +3,9 @@ from flask import Flask, Response, request
 from flask_restful import Api, Resource
 import os
 import sys
+import json
 from pprint import pformat
+import pprint
 import logging
 
 # Nuxeo client
@@ -42,6 +44,18 @@ def set_metadata(uid, metadata):
 app = Flask(__name__)
 api = Api(app)
 
+@app.route('/', methods=['GET'])
+def healthcheck():
+    pprint.pprint(nuxeo.client.is_reachable())
+    DicStatus = {
+        'Status':'ok',
+        'Code':'200'
+    }
+
+    return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+
+
+
 class document(Resource):
         
     def post(self, filename, file_object, properties):
@@ -50,6 +64,7 @@ class document(Resource):
     def get(self, uid):
         logging.info("Start fetching")
         logging.info(pformat(nuxeo.documents.get(uid=uid)))
+        #pprint.pprint(nuxeo.documents.get(uid=uid))
         logging.info("Finish fetching ")
 
 class metadata(Resource):
