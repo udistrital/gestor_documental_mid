@@ -46,13 +46,16 @@ api = Api(app)
 
 @app.route('/', methods=['GET'])
 def healthcheck():
-    pprint.pprint(nuxeo.client.is_reachable())
-    DicStatus = {
-        'Status':'ok',
-        'Code':'200'
-    }
-
-    return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+    try:
+        pprint.pprint(nuxeo.client.is_reachable())
+        DicStatus = {
+            'Status':'ok',
+            'Code':'200'
+        }
+        return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+    except Exception as e:
+        logging.error("type error: " + str(e))
+        return Response("{'Status':'500'}", status=500, mimetype='application/json')
 
 
 
@@ -62,10 +65,16 @@ class document(Resource):
         pass
     
     def get(self, uid):
-        logging.info("Start fetching")
-        logging.info(pformat(nuxeo.documents.get(uid=uid)))
-        #pprint.pprint(nuxeo.documents.get(uid=uid))
-        logging.info("Finish fetching ")
+        try:
+            #logging.info("Start fetching")
+            #logging.info(pformat(nuxeo.documents.get(uid=uid)))
+            #pprint.pprint(type(nuxeo.documents.get(uid=uid).properties))
+            #pprint.pprint(type(nuxeo.documents.get(uid=uid)))
+            DicRes = nuxeo.documents.get(uid=uid).properties
+            return Response(json.dumps(DicRes), status=200, mimetype='application/json')
+        except Exception as e:
+            logging.error("type error: " + str(e))
+            return Response("{'Status':'500'}", status=500, mimetype='application/json')
 
 class metadata(Resource):
         
