@@ -36,7 +36,7 @@ def set_metadata(uid, metadata):
         return Response("{'Status':'200'}", status=200, mimetype='application/json')
     except Exception as e:
         logging.error("type error: " + str(e))
-        return Response("{'Status':'500'}", status=500, mimetype='application/json')
+        return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
 
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
@@ -55,7 +55,7 @@ def healthcheck():
         return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
     except Exception as e:
         logging.error("type error: " + str(e))
-        return Response("{'Status':'500'}", status=500, mimetype='application/json')
+        return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
 
 
@@ -73,8 +73,9 @@ class document(Resource):
             DicRes = nuxeo.documents.get(uid=uid).properties
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
         except Exception as e:
-            logging.error("type error: " + str(e))
-            return Response("{'Status':'500'}", status=500, mimetype='application/json')
+            pprint.pprint("type error: " + str(e))
+            return Response(json.dumps({'Status':'500','Error':'IDNotFound'}), status=500, mimetype='application/json')
+            
 
 class metadata(Resource):
         
