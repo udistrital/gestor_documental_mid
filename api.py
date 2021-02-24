@@ -1,5 +1,6 @@
 from nuxeo.client import Nuxeo
 from flask import Flask, Response, request
+from flask_cors import CORS, cross_origin
 from flask_restful import Api, Resource
 import os
 import sys
@@ -13,6 +14,12 @@ nuxeo = None
 
 # Environmen variables list
 variables = ['API_PORT', 'NUXEO_URL', 'NUXEO_USERNAME', 'NUXEO_PASSWORD']
+
+api_cors_config = {
+  "origins": ["*"],
+  "methods": ["OPTIONS", "GET", "POST"],
+  "allow_headers": ["Authorization", "Content-Type"]
+}
 
 # Environment variables checking
 for variable in variables:
@@ -42,6 +49,7 @@ def set_metadata(uid, metadata):
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
 app = Flask(__name__)
+CORS(app)
 api = Api(app)
 
 @app.route('/', methods=['GET'])
@@ -57,12 +65,21 @@ def healthcheck():
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
+@app.route("/upload", methods=["POST"])
+@cross_origin(**api_cors_config)
+def post_example():
+    data = request.get_json()
+    pprint.pprint(data)
+    return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
 
 
 class document(Resource):
         
     def post(self, filename, file_object, properties):
-        pass
+        pprint.pprint(self)
+        pprint.pprint(filename)
+        pprint.pprint(file_object)
+        pprint.pprint(properties)
     
     def get(self, uid):
         try:
@@ -82,6 +99,13 @@ class metadata(Resource):
     def post(self, uid):
         data = request.get_json()
         return set_metadata(uid, data['properties'])
+
+# class uploadDocument(Resource):
+
+#     def post(self):
+#         data = request.get_json()
+#         pprint.pprint(data)
+#         return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
 
 api.add_resource(metadata, '/document/<string:uid>/metadata')
 api.add_resource(document, '/document/<string:uid>')
