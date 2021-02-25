@@ -8,12 +8,13 @@ import json
 from pprint import pformat
 import pprint
 import logging
+import requests
 
 # Nuxeo client
 nuxeo = None
 
 # Environmen variables list
-variables = ['API_PORT', 'NUXEO_URL', 'NUXEO_USERNAME', 'NUXEO_PASSWORD']
+variables = ['API_PORT', 'NUXEO_URL', 'NUXEO_USERNAME', 'NUXEO_PASSWORD', 'DOCUMENTOS_CRUD_URL']
 
 api_cors_config = {
   "origins": ["*"],
@@ -53,6 +54,7 @@ CORS(app)
 api = Api(app)
 
 @app.route('/', methods=['GET'])
+@cross_origin(**api_cors_config)
 def healthcheck():
     try:
         pprint.pprint(nuxeo.client.is_reachable())
@@ -70,6 +72,13 @@ def healthcheck():
 def post_example():
     data = request.get_json()
     pprint.pprint(data)
+    pprint.pprint(type(data))
+    IdDocumento = data[0]['IdDocumento']
+    res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento)).content
+    res_json = json.loads(res.decode('utf8').replace("'", '"'))
+    
+    pprint.pprint(res_json)
+    pprint.pprint(type(res_json))
     return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
 
 
@@ -99,13 +108,6 @@ class metadata(Resource):
     def post(self, uid):
         data = request.get_json()
         return set_metadata(uid, data['properties'])
-
-# class uploadDocument(Resource):
-
-#     def post(self):
-#         data = request.get_json()
-#         pprint.pprint(data)
-#         return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
 
 api.add_resource(metadata, '/document/<string:uid>/metadata')
 api.add_resource(document, '/document/<string:uid>')
