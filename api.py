@@ -1,5 +1,5 @@
 from nuxeo.client import Nuxeo
-from nuxeo.models import Document, FileBlob
+from nuxeo.models import Document, FileBlob, BufferBlob
 from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request
 from flask_cors import CORS, cross_origin
@@ -103,11 +103,12 @@ def post_example():
     pprint.pprint(blob)
     pprint.pprint(type(blob))
 
-    with open(os.path.expanduser('/home/babermudezb/Escritorio/test.pdf'), 'wb') as fout:
+    with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
      fout.write(blob)
 
     try:
-        uploaded = batch.upload(FileBlob('/home/babermudezb/Escritorio/test.pdf'), chunked=True)
+        uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+        # uploaded = batch.upload(BufferBlob(data[0]['file']), chunked=True)
         #uploaded = batch.upload(blob)
     except UploadError:
         return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
@@ -135,7 +136,14 @@ class document(Resource):
             #logging.info(pformat(nuxeo.documents.get(uid=uid)))
             #pprint.pprint(type(nuxeo.documents.get(uid=uid).properties))
             #pprint.pprint(type(nuxeo.documents.get(uid=uid)))
-            DicRes = nuxeo.documents.get(uid=uid).properties
+            doc = nuxeo.documents.get(uid = uid)
+            #DicRes = nuxeo.documents.get(uid=uid).properties
+            DicRes = doc.properties
+            blob_get = doc.fetch_blob()
+            blob64 = base64.b64encode(blob_get)
+            DicRes['file'] = str(blob64)
+            # pprint.pprint(blob_get)
+            # pprint.pprint(type(blob_get))
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
         except Exception as e:
             pprint.pprint("type error: " + str(e))
