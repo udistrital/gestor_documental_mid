@@ -44,7 +44,7 @@ def set_metadata(uid, metadata):
         for prop, value in metadata.items():
             doc.properties[prop] = value
         doc.save()
-        return Response("{'Status':'200'}", status=200, mimetype='application/json')
+        return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
     except Exception as e:
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
@@ -93,7 +93,7 @@ def post_example():
         blob = base64.b64decode(data[0]['file'])
 
         with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
-        fout.write(blob)
+            fout.write(blob)
 
         try:
             uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
