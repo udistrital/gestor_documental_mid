@@ -74,15 +74,9 @@ def healthcheck():
 @cross_origin(**api_cors_config)
 def post_example():
     data = request.get_json()
-    pprint.pprint(data)
-    pprint.pprint(type(data))
     IdDocumento = data[0]['IdDocumento']
     res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento)).content
     res_json = json.loads(res.decode('utf8').replace("'", '"'))
-    
-    pprint.pprint(res_json)
-    pprint.pprint(type(res_json))
-
 
     up_file = Document(
     name = data[0]['nombre'],
@@ -91,35 +85,45 @@ def post_example():
         'dc:title': data[0]['nombre'],
     })
 
-    pprint.pprint(up_file)
-    pprint.pprint(type(up_file))
-
     file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
 
     # Create a batch
     batch = nuxeo.uploads.batch()
-    #blob = FileBlob(data[0]['file'])
     blob = base64.b64decode(data[0]['file'])
-    pprint.pprint(blob)
-    pprint.pprint(type(blob))
 
     with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
      fout.write(blob)
 
     try:
         uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
-        # uploaded = batch.upload(BufferBlob(data[0]['file']), chunked=True)
-        #uploaded = batch.upload(blob)
+        #uploaded = batch.upload(BufferBlob(blob), chunked=True)
     except UploadError:
         return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
 
     # Attach it to the file
     operation = nuxeo.operations.new('Blob.AttachOnDocument')
-    operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+    #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+    operation.params = {'document': str(file.uid)}
     operation.input_obj = uploaded
     operation.execute()
 
-    return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
+    pprint.pprint(file)
+
+    DicPostDoc = {
+        'Enlace' : str(file.uid),
+        'Nombre' : data[0]['nombre'],
+        'TipoDocumento' :  res_json
+    }
+
+    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento', json=DicPostDoc).content
+    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+
+    pprint.pprint(dictFromPost)
+    pprint.pprint(type(dictFromPost))
+
+
+
+    return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
 
 
 class document(Resource):
@@ -132,22 +136,16 @@ class document(Resource):
     
     def get(self, uid):
         try:
-            #logging.info("Start fetching")
-            #logging.info(pformat(nuxeo.documents.get(uid=uid)))
-            #pprint.pprint(type(nuxeo.documents.get(uid=uid).properties))
-            #pprint.pprint(type(nuxeo.documents.get(uid=uid)))
             doc = nuxeo.documents.get(uid = uid)
             #DicRes = nuxeo.documents.get(uid=uid).properties
             DicRes = doc.properties
             blob_get = doc.fetch_blob()
             blob64 = base64.b64encode(blob_get)
             DicRes['file'] = str(blob64)
-            # pprint.pprint(blob_get)
-            # pprint.pprint(type(blob_get))
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
         except Exception as e:
             pprint.pprint("type error: " + str(e))
-            return Response(json.dumps({'Status':'500','Error':'IDNotFound'}), status=500, mimetype='application/json')
+            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
             
 
 class metadata(Resource):
