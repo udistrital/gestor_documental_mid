@@ -20,6 +20,7 @@ NUXEO_PASSWORD=[Contraseña usuario nuxeo]
 DOCUMENTOS_CRUD_URL=[URL API documentos_crud]
 ```
 **NOTA:** Las variables se pueden ver en el fichero api.py ...
+**NOTA2:** [Revisar el issue de desarrollo para confirmar formatos de entrada de los endpoint](https://github.com/udistrital/gestor_documental_mid/issues/3) ...
 
 ### Ejecución del Proyecto
 ```shell
