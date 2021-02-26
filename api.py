@@ -73,58 +73,61 @@ def healthcheck():
 @app.route("/upload", methods=["POST"])
 @cross_origin(**api_cors_config)
 def post_example():
-    data = request.get_json()
-    IdDocumento = data[0]['IdDocumento']
-    res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento)).content
-    res_json = json.loads(res.decode('utf8').replace("'", '"'))
-
-    up_file = Document(
-    name = data[0]['nombre'],
-    type = res_json['TipoDocumentoNuxeo'],
-    properties={
-        'dc:title': data[0]['nombre'],
-    })
-
-    file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
-
-    # Create a batch
-    batch = nuxeo.uploads.batch()
-    blob = base64.b64decode(data[0]['file'])
-
-    with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
-     fout.write(blob)
-
     try:
-        uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
-        #uploaded = batch.upload(BufferBlob(blob), chunked=True)
-    except UploadError:
-        return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+        data = request.get_json()
+        IdDocumento = data[0]['IdDocumento']
+        res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento)).content
+        res_json = json.loads(res.decode('utf8').replace("'", '"'))
 
-    # Attach it to the file
-    operation = nuxeo.operations.new('Blob.AttachOnDocument')
-    #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
-    operation.params = {'document': str(file.uid)}
-    operation.input_obj = uploaded
-    operation.execute()
+        up_file = Document(
+        name = data[0]['nombre'],
+        type = res_json['TipoDocumentoNuxeo'],
+        properties={
+            'dc:title': data[0]['nombre'],
+        })
 
-    pprint.pprint(file)
+        file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
 
-    DicPostDoc = {
-        'Enlace' : str(file.uid),
-        'Nombre' : data[0]['nombre'],
-        'TipoDocumento' :  res_json
-    }
+        # Create a batch
+        batch = nuxeo.uploads.batch()
+        blob = base64.b64decode(data[0]['file'])
 
-    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento', json=DicPostDoc).content
-    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+        with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
+        fout.write(blob)
 
-    pprint.pprint(dictFromPost)
-    pprint.pprint(type(dictFromPost))
+        try:
+            uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+            #uploaded = batch.upload(BufferBlob(blob), chunked=True)
+        except UploadError:
+            return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+
+        # Attach it to the file
+        operation = nuxeo.operations.new('Blob.AttachOnDocument')
+        #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+        operation.params = {'document': str(file.uid)}
+        operation.input_obj = uploaded
+        operation.execute()
+
+        pprint.pprint(file)
+
+        DicPostDoc = {
+            'Enlace' : str(file.uid),
+            'Nombre' : data[0]['nombre'],
+            'TipoDocumento' :  res_json
+        }
+
+        resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento', json=DicPostDoc).content
+        dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+
+        pprint.pprint(dictFromPost)
 
 
 
-    return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
-
+        return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+    
+    except Exception as e:
+            pprint.pprint("type error: " + str(e))
+            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
 class document(Resource):
         
