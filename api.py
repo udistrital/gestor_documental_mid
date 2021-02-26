@@ -1,4 +1,6 @@
 from nuxeo.client import Nuxeo
+from nuxeo.models import Document, FileBlob
+from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request
 from flask_cors import CORS, cross_origin
 from flask_restful import Api, Resource
@@ -9,6 +11,7 @@ from pprint import pformat
 import pprint
 import logging
 import requests
+import base64
 
 # Nuxeo client
 nuxeo = None
@@ -79,6 +82,42 @@ def post_example():
     
     pprint.pprint(res_json)
     pprint.pprint(type(res_json))
+
+
+    up_file = Document(
+    name = data[0]['nombre'],
+    type = res_json['TipoDocumentoNuxeo'],
+    properties={
+        'dc:title': data[0]['nombre'],
+    })
+
+    pprint.pprint(up_file)
+    pprint.pprint(type(up_file))
+
+    file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
+
+    # Create a batch
+    batch = nuxeo.uploads.batch()
+    #blob = FileBlob(data[0]['file'])
+    blob = base64.b64decode(data[0]['file'])
+    pprint.pprint(blob)
+    pprint.pprint(type(blob))
+
+    with open(os.path.expanduser('/home/babermudezb/Escritorio/test.pdf'), 'wb') as fout:
+     fout.write(blob)
+
+    try:
+        uploaded = batch.upload(FileBlob('/home/babermudezb/Escritorio/test.pdf'), chunked=True)
+        #uploaded = batch.upload(blob)
+    except UploadError:
+        return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+
+    # Attach it to the file
+    operation = nuxeo.operations.new('Blob.AttachOnDocument')
+    operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+    operation.input_obj = uploaded
+    operation.execute()
+
     return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
 
 
