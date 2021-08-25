@@ -70,64 +70,59 @@ def healthcheck():
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-@app.route("/upload", methods=["POST"])
-@cross_origin(**api_cors_config)
-def post_example():
-    try:
-        data = request.get_json()
-        IdDocumento = data[0]['IdDocumento']
-        res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento)).content
-        res_json = json.loads(res.decode('utf8').replace("'", '"'))
+class subir(Resource):
+    @app.route("/upload", methods=["POST"])
+    @cross_origin(**api_cors_config)
+    def post_example():
+        try:            
+            data = request.get_json()#representa el cuerpo del json enviado por la peticion             
+            IdDocumento = data[0]['IdDocumento']                        
+            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento)).content                                    
+            res_json = json.loads(res.decode('utf8').replace("'", '"'))                        
+            up_file = Document(
+            name = data[0]['nombre'],
+            type = res_json['TipoDocumentoNuxeo'],
+            properties={
+                'dc:title': data[0]['nombre'],                
+            })            
 
-        up_file = Document(
-        name = data[0]['nombre'],
-        type = res_json['TipoDocumentoNuxeo'],
-        properties={
-            'dc:title': data[0]['nombre'],
-        })
+            file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
 
-        file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
+            # Create a batch
+            batch = nuxeo.uploads.batch()
+            blob = base64.b64decode(data[0]['file'])
 
-        # Create a batch
-        batch = nuxeo.uploads.batch()
-        blob = base64.b64decode(data[0]['file'])
+            with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
+                fout.write(blob)
+            try:
+                uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+                #uploaded = batch.upload(BufferBlob(blob), chunked=True)
+            except UploadError:
+                return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
 
-        with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
-            fout.write(blob)
+            # Attach it to the file
+            operation = nuxeo.operations.new('Blob.AttachOnDocument')
+            #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+            operation.params = {'document': str(file.uid)}
+            operation.input_obj = uploaded
+            operation.execute()
+            
 
-        try:
-            uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
-            #uploaded = batch.upload(BufferBlob(blob), chunked=True)
-        except UploadError:
-            return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+            DicPostDoc = {
+                'Enlace' : str(file.uid),
+                'Nombre' : data[0]['nombre'],
+                'TipoDocumento' :  res_json
+            }
+            
+            resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content            
+            dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+            pprint.pprint(dictFromPost)
 
-        # Attach it to the file
-        operation = nuxeo.operations.new('Blob.AttachOnDocument')
-        #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
-        operation.params = {'document': str(file.uid)}
-        operation.input_obj = uploaded
-        operation.execute()
-
-        pprint.pprint(file)
-
-        DicPostDoc = {
-            'Enlace' : str(file.uid),
-            'Nombre' : data[0]['nombre'],
-            'TipoDocumento' :  res_json
-        }
-
-        resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento', json=DicPostDoc).content
-        dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
-
-        pprint.pprint(dictFromPost)
-
-
-
-        return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
-    
-    except Exception as e:
-            pprint.pprint("type error: " + str(e))
-            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
+            return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+        
+        except Exception as e:            
+                pprint.pprint("type error: " + str(e))
+                return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
 class document(Resource):
         
@@ -138,13 +133,13 @@ class document(Resource):
         pprint.pprint(properties)
     
     def get(self, uid):
-        try:
+        try:            
             doc = nuxeo.documents.get(uid = uid)
-            #DicRes = nuxeo.documents.get(uid=uid).properties
+            #DicRes = nuxeo.documents.get(uid=uid).properties            
             DicRes = doc.properties
             blob_get = doc.fetch_blob()
             blob64 = base64.b64encode(blob_get)
-            DicRes['file'] = str(blob64)
+            DicRes['file'] = str(blob64)                        
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
         except Exception as e:
             pprint.pprint("type error: " + str(e))
@@ -153,12 +148,13 @@ class document(Resource):
 
 class metadata(Resource):
         
-    def post(self, uid):
+    def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
         data = request.get_json()
         return set_metadata(uid, data['properties'])
 
 api.add_resource(metadata, '/document/<string:uid>/metadata')
 api.add_resource(document, '/document/<string:uid>')
+api.add_resource(subir, '/upload')
 
 if __name__ == "__main__":
     nuxeo = init_nuxeo()
