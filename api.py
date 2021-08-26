@@ -56,35 +56,36 @@ app = Flask(__name__)
 CORS(app)
 api = Api(app)
 
-@app.route('/', methods=['GET'])
-@cross_origin(**api_cors_config)
-def healthcheck():
-    try:
-        pprint.pprint(nuxeo.client.is_reachable())
-        DicStatus = {
-            'Status':'ok',
-            'Code':'200'
-        }
-        return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
-    except Exception as e:
-        logging.error("type error: " + str(e))
-        return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
+class Root(Resource):
+    @app.route('/', methods=['GET'])
+    @cross_origin(**api_cors_config)
+    def healthcheck():
+        try:
+            pprint.pprint(nuxeo.client.is_reachable())
+            DicStatus = {
+                'Status':'ok',
+                'Code':'200'
+            }
+            return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+        except Exception as e:
+            logging.error("type error: " + str(e))
+            return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-class subir(Resource):
+class Upload(Resource):
     @app.route("/upload", methods=["POST"])
     @cross_origin(**api_cors_config)
-    def post_example():
+    def post():
         try:            
-            data = request.get_json()#representa el cuerpo del json enviado por la peticion             
-            IdDocumento = data[0]['IdDocumento']                        
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento)).content                                    
-            res_json = json.loads(res.decode('utf8').replace("'", '"'))                        
+            data = request.get_json()#representa el cuerpo del json enviado por la peticion
+            IdDocumento = data[0]['IdDocumento']
+            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento)).content
+            res_json = json.loads(res.decode('utf8').replace("'", '"'))
             up_file = Document(
             name = data[0]['nombre'],
             type = res_json['TipoDocumentoNuxeo'],
             properties={
-                'dc:title': data[0]['nombre'],                
-            })            
+                'dc:title': data[0]['nombre'],
+            })
 
             file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
 
@@ -116,8 +117,6 @@ class subir(Resource):
             
             resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content            
             dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
-            pprint.pprint(dictFromPost)
-
             return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
         
         except Exception as e:            
@@ -132,6 +131,7 @@ class document(Resource):
         pprint.pprint(file_object)
         pprint.pprint(properties)
     
+    @cross_origin(**api_cors_config)
     def get(self, uid):
         try:            
             doc = nuxeo.documents.get(uid = uid)
@@ -146,15 +146,17 @@ class document(Resource):
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
             
 
-class metadata(Resource):
-        
+class Metadata(Resource):
+
+    @cross_origin(**api_cors_config)
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
         data = request.get_json()
         return set_metadata(uid, data['properties'])
 
-api.add_resource(metadata, '/document/<string:uid>/metadata')
+api.add_resource(Root, '/')
+api.add_resource(Metadata, '/document/<string:uid>/metadata')
 api.add_resource(document, '/document/<string:uid>')
-api.add_resource(subir, '/upload')
+api.add_resource(Upload, '/upload')
 
 if __name__ == "__main__":
     nuxeo = init_nuxeo()
