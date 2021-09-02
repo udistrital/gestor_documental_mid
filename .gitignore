@@ -104,5 +104,4 @@ venv.bak/
 .mypy_cache/
 
 #documentpdf
-.document/document.pdf
-.document/
+documents/ 
