@@ -122,7 +122,7 @@ class Upload(Resource):
             elif validate_document(data[0]['nombre']) == True:
                 return Response(json.dumps({'Status':'500','Error': str("the name "+data[0]['nombre']+" already exists in Nuxeo" )}), status=500, mimetype='application/json')
             else: 
-                return Response(json.dumps({'Status':'500','Error': str("ha ocurrido un error muy paila!!!! " )}), status=500, mimetype='application/json')        
+                return Response(json.dumps({'Status':'500','Error': str("an error occurred in documentos_crud" )}), status=500, mimetype='application/json')        
 
         except Exception as e:            
                 pprint.pprint("type error: " + str(e))
