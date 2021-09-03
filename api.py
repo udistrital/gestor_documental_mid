@@ -86,39 +86,42 @@ class Upload(Resource):
             data = request.get_json()#representa el cuerpo del json enviado por la peticion
             if not validate_document(data[0]['nombre']):
                 IdDocumento = data[0]['IdDocumento']
-                res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento)).content
-                res_json = json.loads(res.decode('utf8').replace("'", '"'))
-                up_file = Document(
-                name = data[0]['nombre'],
-                type = res_json['TipoDocumentoNuxeo'],
-                properties={
-                    'dc:title': data[0]['nombre'],
-                })
-                file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
-                # Create a batch
-                batch = nuxeo.uploads.batch()
-                blob = base64.b64decode(data[0]['file'])
-                with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
-                    fout.write(blob)
-                try:
-                    uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
-                    #uploaded = batch.upload(BufferBlob(blob), chunked=True)
-                except UploadError:
-                    return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
-                # Attach it to the file
-                operation = nuxeo.operations.new('Blob.AttachOnDocument')
-                #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
-                operation.params = {'document': str(file.uid)}
-                operation.input_obj = uploaded
-                operation.execute()                
-                DicPostDoc = {
-                    'Enlace' : str(file.uid),
-                    'Nombre' : data[0]['nombre'],
-                    'TipoDocumento' :  res_json
-                }                
-                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content            
-                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
-                return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+                res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+                if res.status_code == 200:                
+                    res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                    up_file = Document(
+                    name = data[0]['nombre'],
+                    type = res_json['TipoDocumentoNuxeo'],
+                    properties={
+                        'dc:title': data[0]['nombre'],
+                    })
+                    file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
+                    # Create a batch
+                    batch = nuxeo.uploads.batch()
+                    blob = base64.b64decode(data[0]['file'])
+                    with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
+                        fout.write(blob)
+                    try:
+                        uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+                        #uploaded = batch.upload(BufferBlob(blob), chunked=True)
+                    except UploadError:
+                        return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+                    # Attach it to the file
+                    operation = nuxeo.operations.new('Blob.AttachOnDocument')
+                    #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+                    operation.params = {'document': str(file.uid)}
+                    operation.input_obj = uploaded
+                    operation.execute()                
+                    DicPostDoc = {
+                        'Enlace' : str(file.uid),
+                        'Nombre' : data[0]['nombre'],
+                        'TipoDocumento' :  res_json
+                    }                
+                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content            
+                    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+                    return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+                else:
+                    return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
             elif validate_document(data[0]['nombre']) == True:
                 return Response(json.dumps({'Status':'500','Error': str("the name "+data[0]['nombre']+" already exists in Nuxeo" )}), status=500, mimetype='application/json')
             else: 
