@@ -87,51 +87,6 @@ class Root(Resource):
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-def firmar(plain_text):
-    try:
-        #objeto_firmado = []
-        # genera un par de claves 
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
-        public_key = private_key.public_key()
-
-        #serializacion de llaves 
-        pem_privada = private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        )
-        
-        pem_publica = public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        # firma el documento
-        signature = private_key.sign(
-            data=plain_text.encode('utf-8'),
-            padding=padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            algorithm=hashes.SHA256()
-        )
-        
-        mascara = abs(hash(str(pem_publica)))
-        objeto_firmado = {
-            "codigo_autenticidad": str(mascara),
-            "llaves": {
-                "llave_publica": base64.urlsafe_b64encode(pem_publica).decode("utf-8"),
-                "llave_privada": base64.urlsafe_b64encode(pem_privada).decode("utf-8"),
-                "firma": base64.urlsafe_b64encode(signature).decode("utf-8")
-            }
-        }
-        return objeto_firmado
-    except UnsupportedAlgorithm:
-        logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
-
 class Upload(Resource):
     @app.route("/upload", methods=["POST"])
     @cross_origin(**api_cors_config)
@@ -165,15 +120,13 @@ class Upload(Resource):
                     #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
                     operation.params = {'document': str(file.uid)}
                     operation.input_obj = uploaded
-                    operation.execute()
-                    firmado = firmar(str(data[0]['file']))                    
+                    operation.execute()                    
                     DicPostDoc = {
-                        'Enlace' : str(file.uid),
-                        'Metadatos': str(firmado).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", ""),
+                        'Enlace' : str(file.uid),                        
                         'Nombre' : data[0]['nombre'],
                         'TipoDocumento' :  res_json                        
                     }
-                    pprint.pprint(DicPostDoc)
+                    #pprint.pprint(DicPostDoc)
                     resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content                                                            
                     dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                    
                     return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
