@@ -3,4 +3,5 @@ requests >= 2.12.2
 Flask
 Flask-RESTful
 nuxeo
+cryptography
 flask-cors

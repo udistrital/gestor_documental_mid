@@ -12,6 +12,15 @@ import pprint
 import logging
 import requests
 import base64
+#librerias de firma digital 
+from cryptography.exceptions import InvalidSignature
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+
 
 # Nuxeo client
 nuxeo = None
@@ -49,7 +58,7 @@ def set_metadata(uid, metadata):
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-def validate_document(nombre):    
+def validate_document_repeated(nombre):    
     res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Nombre:'+nombre)    
     if res.status_code == 200:
         res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
@@ -78,13 +87,58 @@ class Root(Resource):
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
+def firmar(plain_text):
+    try:
+        #objeto_firmado = []
+        # genera un par de claves 
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048,
+            backend=default_backend()
+        )
+        public_key = private_key.public_key()
+
+        #serializacion de llaves 
+        pem_privada = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        
+        pem_publica = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        # firma el documento
+        signature = private_key.sign(
+            data=plain_text.encode('utf-8'),
+            padding=padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            algorithm=hashes.SHA256()
+        )
+        
+        mascara = abs(hash(str(pem_publica)))
+        objeto_firmado = {
+            "codigo_autenticidad": str(mascara),
+            "llaves": {
+                "llave_publica": base64.urlsafe_b64encode(pem_publica).decode("utf-8"),
+                "llave_privada": base64.urlsafe_b64encode(pem_privada).decode("utf-8"),
+                "firma": base64.urlsafe_b64encode(signature).decode("utf-8")
+            }
+        }
+        return objeto_firmado
+    except UnsupportedAlgorithm:
+        logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
+
 class Upload(Resource):
     @app.route("/upload", methods=["POST"])
     @cross_origin(**api_cors_config)
     def post():
         try:            
-            data = request.get_json()#representa el cuerpo del json enviado por la peticion
-            if not validate_document(data[0]['nombre']):
+            data = request.get_json()
+            if not validate_document_repeated(data[0]['nombre']):
                 IdDocumento = data[0]['IdDocumento']
                 res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
                 if res.status_code == 200:                
@@ -111,18 +165,21 @@ class Upload(Resource):
                     #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
                     operation.params = {'document': str(file.uid)}
                     operation.input_obj = uploaded
-                    operation.execute()                
+                    operation.execute()
+                    firmado = firmar(str(data[0]['file']))                    
                     DicPostDoc = {
                         'Enlace' : str(file.uid),
+                        'Metadatos': str(firmado).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", ""),
                         'Nombre' : data[0]['nombre'],
-                        'TipoDocumento' :  res_json
-                    }                
-                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content            
-                    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+                        'TipoDocumento' :  res_json                        
+                    }
+                    pprint.pprint(DicPostDoc)
+                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content                                                            
+                    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                    
                     return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
                 else:
                     return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
-            elif validate_document(data[0]['nombre']) == True:
+            elif validate_document_repeated(data[0]['nombre']) == True:
                 return Response(json.dumps({'Status':'500','Error': str("the name "+data[0]['nombre']+" already exists in Nuxeo" )}), status=500, mimetype='application/json')
             else: 
                 return Response(json.dumps({'Status':'500','Error': str("an error occurred in documentos_crud" )}), status=500, mimetype='application/json')        
