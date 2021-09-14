@@ -4,6 +4,7 @@ from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request
 from flask_cors import CORS, cross_origin
 from flask_restful import Api, Resource
+#from flask_restx import Api, Resource
 import os
 import sys
 import json
@@ -12,7 +13,7 @@ import pprint
 import logging
 import requests
 import base64
-#librerias de firma digital 
+#librerias de firma electronica 
 from cryptography.exceptions import InvalidSignature
 from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
@@ -58,7 +59,7 @@ def set_metadata(uid, metadata):
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-def validate_document_repeated(nombre):    
+def validate_document_repeated(nombre):
     res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Nombre:'+nombre)    
     if res.status_code == 200:
         res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
@@ -72,10 +73,10 @@ app = Flask(__name__)
 CORS(app)
 api = Api(app)
 
-class Root(Resource):
+class Healthcheck(Resource):
     @app.route('/', methods=['GET'])
     @cross_origin(**api_cors_config)
-    def healthcheck():
+    def get():
         try:
             pprint.pprint(nuxeo.client.is_reachable())
             DicStatus = {
@@ -167,10 +168,10 @@ class Upload(Resource):
                     operation.params = {'document': str(file.uid)}
                     operation.input_obj = uploaded
                     operation.execute()        
-                    firma_electronica = firmar(str(data[0]['file']))
+                    #firma_electronica = firmar(str(data[0]['file']))
                     DicPostDoc = {
                         'Enlace' : str(file.uid),
-                        'Metadatos' : firma_electronica,
+                        #'Metadatos' : firma_electronica,
                         'Nombre' : data[0]['nombre'],
                         'TipoDocumento' :  res_json                        
                     }
@@ -225,7 +226,7 @@ class Metadata(Resource):
         data = request.get_json()
         return set_metadata(uid, data['properties'])
 
-api.add_resource(Root, '/')
+api.add_resource(Healthcheck, '/')
 api.add_resource(Metadata, '/document/<string:uid>/metadata')
 api.add_resource(document, '/document/<string:uid>')
 api.add_resource(Upload, '/upload')
