@@ -1,10 +1,10 @@
 from nuxeo.client import Nuxeo
 from nuxeo.models import Document, FileBlob, BufferBlob
 from nuxeo.exceptions import UploadError
-from flask import Flask, Response, request
+from flask import Flask, Response, request, Blueprint
 from flask_cors import CORS, cross_origin
-from flask_restful import Api, Resource
-#from flask_restx import Api, Resource
+#from flask_restful import Api, Resource
+from flask_restx import Api, Resource, reqparse
 import os
 import sys
 import json
@@ -71,12 +71,19 @@ def validate_document_repeated(nombre):
 
 app = Flask(__name__)
 CORS(app)
-api = Api(app)
+api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo',)
+#api = Api(app,doc=False) # modo produccion 
 
+
+@api.route('/nuxeo_status')
 class Healthcheck(Resource):
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error'
+    })        
     @app.route('/', methods=['GET'])
     @cross_origin(**api_cors_config)
-    def get():
+    def get(self):
         try:
             pprint.pprint(nuxeo.client.is_reachable())
             DicStatus = {
@@ -133,7 +140,7 @@ def firmar(plain_text):
         return string_json
     except UnsupportedAlgorithm:
         logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
-
+@api.route('/upload')
 class Upload(Resource):
     @app.route("/upload", methods=["POST"])
     @cross_origin(**api_cors_config)
@@ -189,14 +196,15 @@ class Upload(Resource):
         except Exception as e:            
                 pprint.pprint("type error: " + str(e))
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
-
+#@api.doc(params={'uid': 'UID del documento generado en Nuxeo'})
+@api.route('/document/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class document(Resource):
         
-    def post(self, filename, file_object, properties):
-        pprint.pprint(self)
-        pprint.pprint(filename)
-        pprint.pprint(file_object)
-        pprint.pprint(properties)
+    #def post(self, filename, file_object, properties):
+        #pprint.pprint(self)
+        #pprint.pprint(filename)
+        #pprint.pprint(file_object)
+        #pprint.pprint(properties)
     
     @cross_origin(**api_cors_config)
     def get(self, uid):
@@ -218,7 +226,7 @@ class document(Resource):
             pprint.pprint("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
             
-
+@api.route('/document/<string:uid>/metadata')
 class Metadata(Resource):
 
     @cross_origin(**api_cors_config)
@@ -226,11 +234,12 @@ class Metadata(Resource):
         data = request.get_json()
         return set_metadata(uid, data['properties'])
 
-api.add_resource(Healthcheck, '/')
-api.add_resource(Metadata, '/document/<string:uid>/metadata')
-api.add_resource(document, '/document/<string:uid>')
-api.add_resource(Upload, '/upload')
+#api.add_resource(Healthcheck, '/')
+#api.add_resource(Metadata, '/document/<string:uid>/metadata')
+#api.add_resource(document, '/document/<string:uid>')
+#api.add_resource(Upload, '/upload')
 
 if __name__ == "__main__":
     nuxeo = init_nuxeo()
     app.run(host='0.0.0.0', port=int(os.environ['API_PORT']))
+    print(json.dumps(api.__schema__)) #exporta la documentacion a formato json
