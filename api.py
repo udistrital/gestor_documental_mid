@@ -71,17 +71,22 @@ def validate_document_repeated(nombre):
 
 app = Flask(__name__)
 CORS(app)
-api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo',)
 #api = Api(app,doc=False) # modo produccion 
+#api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc=False,) #produccion
+api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo',)
+nx = api.namespace("nuxeo_status", description="Nuxeo service Healthcheck")
+dc = api.namespace("document", description="Nuxeo document operations")
 
 
-@api.route('/nuxeo_status')
+
+#@api.route('/')
+@nx.route("/")
 class Healthcheck(Resource):
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error'
-    })        
-    @app.route('/', methods=['GET'])
+    })            
+    #@app.route('/', methods=['GET'])
     @cross_origin(**api_cors_config)
     def get(self):
         try:
@@ -140,11 +145,14 @@ def firmar(plain_text):
         return string_json
     except UnsupportedAlgorithm:
         logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
-@api.route('/upload')
+
+        
+#@api.route('/upload')
+@dc.route("/upload")
 class Upload(Resource):
-    @app.route("/upload", methods=["POST"])
+    #@app.route("/upload", methods=["POST"])
     @cross_origin(**api_cors_config)
-    def post():
+    def post(self):
         try:            
             data = request.get_json()
             if not validate_document_repeated(data[0]['nombre']):
@@ -196,8 +204,11 @@ class Upload(Resource):
         except Exception as e:            
                 pprint.pprint("type error: " + str(e))
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
-#@api.doc(params={'uid': 'UID del documento generado en Nuxeo'})
-@api.route('/document/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
+
+        
+
+#@api.route('/document/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})#@api.doc(params={'uid': 'UID del documento generado en Nuxeo'})
+@dc.route('/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class document(Resource):
         
     #def post(self, filename, file_object, properties):
@@ -226,9 +237,8 @@ class document(Resource):
             pprint.pprint("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
             
-@api.route('/document/<string:uid>/metadata')
+@dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
-
     @cross_origin(**api_cors_config)
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
         data = request.get_json()
