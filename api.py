@@ -7,7 +7,7 @@ from flask_cors import CORS, cross_origin
 from flask_restx import Api, Resource, reqparse
 import os
 import sys
-import json
+import json, yaml
 from pprint import pformat
 import pprint
 import logging
@@ -70,13 +70,14 @@ def validate_document_repeated(nombre):
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
 app = Flask(__name__)
-CORS(app)
-#api = Api(app,doc=False) # modo produccion 
+api_bp = Blueprint("api", __name__, url_prefix="/v1")
+CORS(api_bp)
 #api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc=False,) #produccion
-api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo',)
-nx = api.namespace("nuxeo_status", description="Nuxeo service Healthcheck")
+api = Api(api_bp,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc="/swagger")
+nx = api.namespace("/", description="Nuxeo service Healthcheck")
 dc = api.namespace("document", description="Nuxeo document operations")
-
+request_parser = reqparse.RequestParser(bundle_errors=True)
+request_parser.add_argument('list', location='json', type=list)
 
 
 #@api.route('/')
@@ -91,6 +92,13 @@ class Healthcheck(Resource):
     def get(self):
         try:
             pprint.pprint(nuxeo.client.is_reachable())
+            data = json.loads(json.dumps(api.__schema__))            
+            with open('swagger.json', 'w') as jsonf:
+                jsonf.write(json.dumps(api.__schema__))
+
+            with open('swagger.yml', 'w') as yamlf:
+                yaml.dump(data, yamlf, allow_unicode=True, default_flow_style=False)
+
             DicStatus = {
                 'Status':'ok',
                 'Code':'200'
@@ -151,6 +159,11 @@ def firmar(plain_text):
 @dc.route("/upload")
 class Upload(Resource):
     #@app.route("/upload", methods=["POST"])
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error'
+    })
+    @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
     def post(self):
         try:            
@@ -183,10 +196,10 @@ class Upload(Resource):
                     operation.params = {'document': str(file.uid)}
                     operation.input_obj = uploaded
                     operation.execute()        
-                    #firma_electronica = firmar(str(data[0]['file']))
+                    firma_electronica = firmar(str(data[0]['file']))
                     DicPostDoc = {
                         'Enlace' : str(file.uid),
-                        #'Metadatos' : firma_electronica,
+                        'Metadatos' : firma_electronica,
                         'Nombre' : data[0]['nombre'],
                         'TipoDocumento' :  res_json                        
                     }
@@ -216,7 +229,10 @@ class document(Resource):
         #pprint.pprint(filename)
         #pprint.pprint(file_object)
         #pprint.pprint(properties)
-    
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error'
+    })
     @cross_origin(**api_cors_config)
     def get(self, uid):
         
@@ -239,7 +255,12 @@ class document(Resource):
             
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
+    @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error'
+    })
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
         data = request.get_json()
         return set_metadata(uid, data['properties'])
@@ -249,7 +270,12 @@ class Metadata(Resource):
 #api.add_resource(document, '/document/<string:uid>')
 #api.add_resource(Upload, '/upload')
 
+
 if __name__ == "__main__":
     nuxeo = init_nuxeo()
+    #app = Flask("gestor_documental_mid")
+    app.register_blueprint(api_bp)
     app.run(host='0.0.0.0', port=int(os.environ['API_PORT']))
-    print(json.dumps(api.__schema__)) #exporta la documentacion a formato json
+    #pprint.pprint(json.dumps(api.__schema__)) #exporta la documentacion a formato json
+    
+
