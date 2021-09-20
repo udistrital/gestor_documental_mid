@@ -1,0 +1,91 @@
+basePath: /v1
+consumes:
+- application/json
+info:
+  description: Api mid para la autenticacion de documentos en Nuxeo
+  title: gestor_documental_mid
+  version: '1.0'
+paths:
+  /:
+    get:
+      operationId: get_healthcheck
+      responses:
+        '200':
+          description: Success
+        '500':
+          description: Nuxeo error
+      tags:
+      - /
+  /document/upload:
+    post:
+      operationId: post_upload
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          properties:
+            list:
+              type: string
+          type: object
+      responses:
+        '200':
+          description: Success
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
+  /document/{uid}:
+    get:
+      operationId: get_document_/document/<string:uid>
+      responses:
+        '200':
+          description: Success
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
+    parameters:
+    - description: UID del documento generado en Nuxeo
+      in: path
+      name: uid
+      required: true
+      type: string
+  /document/{uid}/metadata:
+    parameters:
+    - description: UID del documento generado en Nuxeo
+      in: path
+      name: uid
+      required: true
+      type: string
+    post:
+      operationId: post_metadata_/document/<string:uid>/metadata
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          properties:
+            list:
+              type: string
+          type: object
+      responses:
+        '200':
+          description: Success
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
+produces:
+- application/json
+responses:
+  MaskError:
+    description: When any error occurs on mask
+  ParseError:
+    description: When a mask can't be parsed
+swagger: '2.0'
+tags:
+- description: Nuxeo service Healthcheck
+  name: /
+- description: Nuxeo document operations
+  name: document
