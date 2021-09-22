@@ -170,7 +170,7 @@ class Upload(Resource):
     def post(self):
         try:            
             data = request.get_json()
-            IdDocumento = data[0]['IdDocumento']
+            IdDocumento = data[0]['IdTipoDocumento']
             res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
             if res.status_code == 200:                
                 res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
@@ -202,14 +202,16 @@ class Upload(Resource):
                     'Enlace' : str(file.uid),
                     'Metadatos' : firma_electronica,
                     'Nombre' : data[0]['nombre'],
-                    'TipoDocumento' :  res_json                        
+                    "Descripcion": data[0]['descripcion'],
+                    'TipoDocumento' :  res_json,            
+                    'Activo': True            
                 }
                 #pprint.pprint(DicPostDoc)
                 resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
                 dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                    
                 return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
             else:
-                return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
+                return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
         except Exception as e:            
                 pprint.pprint("type error: " + str(e))
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
@@ -233,9 +235,6 @@ class document(Resource):
     def get(self, uid):
         
         try:                        
-            #quemado = "prueba_core_2021_4"
-            #pprint.pprint(validate_document(quemado))
-            #if not validate_document(quemado):
             doc = nuxeo.documents.get(uid = uid)
             #DicRes = nuxeo.documents.get(uid=uid).properties            
             DicRes = doc.properties
