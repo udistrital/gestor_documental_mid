@@ -59,13 +59,15 @@ def set_metadata(uid, metadata):
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-def validate_document_repeated(nombre):
-    res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Nombre:'+nombre)    
-    if res.status_code == 200:
-        res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
-        return True if str(res_json) != "[{}]" else False
-    else:
-        return res.status_code
+#--------------------------------SE DESHABILITA FUNCION DE DOCUMENTO POR INCOMPATIBLIDAD CON EL FLUJO DOCUMENTAL DE CUMPLIDOS CLIENTE------------------------
+#def validate_document_repeated(nombre):
+    #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Nombre:'+nombre)    
+    #if res.status_code == 200:
+        #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+        #return True if str(res_json) != "[{}]" else False
+    #else:
+        #return res.status_code
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
@@ -168,52 +170,46 @@ class Upload(Resource):
     def post(self):
         try:            
             data = request.get_json()
-            if not validate_document_repeated(data[0]['nombre']):
-                IdDocumento = data[0]['IdDocumento']
-                res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
-                if res.status_code == 200:                
-                    res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
-                    up_file = Document(
-                    name = data[0]['nombre'],
-                    type = res_json['TipoDocumentoNuxeo'],
-                    properties={
-                        'dc:title': data[0]['nombre'],
-                    })
-                    file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
-                    # Create a batch
-                    batch = nuxeo.uploads.batch()
-                    blob = base64.b64decode(data[0]['file'])
-                    with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
-                        fout.write(blob)
-                    try:
-                        uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
-                        #uploaded = batch.upload(BufferBlob(blob), chunked=True)
-                    except UploadError:
-                        return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
-                    # Attach it to the file
-                    operation = nuxeo.operations.new('Blob.AttachOnDocument')
-                    #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
-                    operation.params = {'document': str(file.uid)}
-                    operation.input_obj = uploaded
-                    operation.execute()        
-                    firma_electronica = firmar(str(data[0]['file']))
-                    DicPostDoc = {
-                        'Enlace' : str(file.uid),
-                        'Metadatos' : firma_electronica,
-                        'Nombre' : data[0]['nombre'],
-                        'TipoDocumento' :  res_json                        
-                    }
-                    #pprint.pprint(DicPostDoc)
-                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
-                    dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                    
-                    return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
-                else:
-                    return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
-            elif validate_document_repeated(data[0]['nombre']) == True:
-                return Response(json.dumps({'Status':'500','Error': str("the name "+data[0]['nombre']+" already exists in Nuxeo" )}), status=500, mimetype='application/json')
-            else: 
-                return Response(json.dumps({'Status':'500','Error': str("an error occurred in documentos_crud" )}), status=500, mimetype='application/json')        
-
+            IdDocumento = data[0]['IdDocumento']
+            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            if res.status_code == 200:                
+                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                up_file = Document(
+                name = data[0]['nombre'],
+                type = res_json['TipoDocumentoNuxeo'],
+                properties={
+                    'dc:title': data[0]['nombre'],
+                })
+                file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
+                # Create a batch
+                batch = nuxeo.uploads.batch()
+                blob = base64.b64decode(data[0]['file'])
+                with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
+                    fout.write(blob)
+                try:
+                    uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+                    #uploaded = batch.upload(BufferBlob(blob), chunked=True)
+                except UploadError:
+                    return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+                # Attach it to the file
+                operation = nuxeo.operations.new('Blob.AttachOnDocument')
+                #operation.params = {'document': str(res_json['Workspace'])+'/'+data[0]['nombre']}
+                operation.params = {'document': str(file.uid)}
+                operation.input_obj = uploaded
+                operation.execute()        
+                firma_electronica = firmar(str(data[0]['file']))
+                DicPostDoc = {
+                    'Enlace' : str(file.uid),
+                    'Metadatos' : firma_electronica,
+                    'Nombre' : data[0]['nombre'],
+                    'TipoDocumento' :  res_json                        
+                }
+                #pprint.pprint(DicPostDoc)
+                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                    
+                return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+            else:
+                return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
         except Exception as e:            
                 pprint.pprint("type error: " + str(e))
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
