@@ -220,34 +220,52 @@ class Upload(Resource):
 
 #@api.route('/document/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})#@api.doc(params={'uid': 'UID del documento generado en Nuxeo'})
 @dc.route('/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
-class document(Resource):
-        
-    #def post(self, filename, file_object, properties):
-        #pprint.pprint(self)
-        #pprint.pprint(filename)
-        #pprint.pprint(file_object)
-        #pprint.pprint(properties)
+class document(Resource):        
+
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error'
     })
     @cross_origin(**api_cors_config)
-    def get(self, uid):
-        
+    def get(self, uid):        
         try:                        
             doc = nuxeo.documents.get(uid = uid)
-            #DicRes = nuxeo.documents.get(uid=uid).properties            
             DicRes = doc.properties
             blob_get = doc.fetch_blob()
             blob64 = base64.b64encode(blob_get)
             DicRes['file'] = str(blob64)                        
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
-            #else:
-                #return Response(json.dumps({'Status':'500','Error': str("the name "+quemado+" already exists in Nuxeo" )}), status=500, mimetype='application/json')
+
         except Exception as e:
             pprint.pprint("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
-            
+
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error'
+    })
+    @cross_origin(**api_cors_config)
+    def delete(self, uid):        
+        try:                        
+            doc = nuxeo.documents.get(uid = uid)
+            doc.delete()
+            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Enlace:'+uid)    
+            res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+            res_del =  requests.delete(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(res_json[0]['Id']))
+            res_del_json = json.loads(res_del.content.decode('utf8').replace("'", '"'))
+            DicStatus = {
+                'doc_deleted': res_del_json['Id'],
+                'nuxeo_doc_deleted': uid,
+                'Status':'ok',
+                'Code':'200'
+            }
+            return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
+
+        except Exception as e:
+            pprint.pprint("type error: " + str(e))
+            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
+
+
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
     @dc.expect(request_parser)

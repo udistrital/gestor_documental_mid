@@ -36,6 +36,15 @@ paths:
       tags:
       - document
   /document/{uid}:
+    delete:
+      operationId: delete_document_/document/<string:uid>
+      responses:
+        '200':
+          description: Success
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
     get:
       operationId: get_document_/document/<string:uid>
       responses:
