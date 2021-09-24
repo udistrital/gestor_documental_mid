@@ -151,8 +151,9 @@ def firmar(plain_text):
                 "firma": base64.urlsafe_b64encode(signature).decode("utf-8")
             }
         }
-        string_json = str(objeto_firmado).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", "").replace('\\"', '\"')
-        return string_json
+        #string_json = str(objeto_firmado).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", "").replace('\\"', '\"')
+        return objeto_firmado
+        #return string_json
     except UnsupportedAlgorithm:
         logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
 
@@ -198,13 +199,14 @@ class Upload(Resource):
                 operation.input_obj = uploaded
                 operation.execute()        
                 firma_electronica = firmar(str(data[0]['file']))
+                all_metadata = str({** firma_electronica, ** data[0]['metadatos']}).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", "").replace('\\"', '\"')                
                 DicPostDoc = {
                     'Enlace' : str(file.uid),
-                    'Metadatos' : firma_electronica,
+                    'Metadatos' : all_metadata,
                     'Nombre' : data[0]['nombre'],
                     "Descripcion": data[0]['descripcion'],
-                    'TipoDocumento' :  res_json,            
-                    'Activo': True            
+                    'TipoDocumento' :  res_json,
+                    'Activo': True
                 }
                 #pprint.pprint(DicPostDoc)
                 resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
