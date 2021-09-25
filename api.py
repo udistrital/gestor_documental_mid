@@ -199,7 +199,7 @@ class Upload(Resource):
                 operation.input_obj = uploaded
                 operation.execute()        
                 firma_electronica = firmar(str(data[0]['file']))
-                all_metadata = str({** firma_electronica, ** data[0]['metadatos']}).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", "").replace('\\"', '\"')                
+                all_metadata = str({** firma_electronica, ** data[0]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
                 DicPostDoc = {
                     'Enlace' : str(file.uid),
                     'Metadatos' : all_metadata,
@@ -235,7 +235,7 @@ class document(Resource):
             DicRes = doc.properties
             blob_get = doc.fetch_blob()
             blob64 = base64.b64encode(blob_get)
-            DicRes['file'] = str(blob64)                        
+            DicRes['file'] = str(blob64).replace("b'","'").replace("'","")                        
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
 
         except Exception as e:
