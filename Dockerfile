@@ -6,6 +6,10 @@ COPY entrypoint.sh entrypoint.sh
 
 RUN chmod +x entrypoint.sh
 
+RUN mkdir documents
+
+RUN touch ./documents/document.pdf
+
 ENTRYPOINT ["/entrypoint.sh"]
 
 ADD requirements.txt .

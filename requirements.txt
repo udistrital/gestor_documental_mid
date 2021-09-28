@@ -1,5 +1,7 @@
 setuptools >= 30.3.0
 requests >= 2.12.2
 Flask
-Flask-RESTful
-nuxeo
+flask-restx
+nuxeo[oauth2]
+cryptography
+flask-cors
