@@ -1,6 +1,5 @@
 import os
 import unittest
-import base64
 import json
 import requests
 import pprint
@@ -41,7 +40,7 @@ class Testeo(unittest.TestCase):
             ]
         }
     }
-    uid_nuxeo_test = "705869ba-c618-4b0c-ae1d-980afe054941"#uid de prueba puede ser eliminado en un futuro
+    uid_nuxeo_test = "f7484c6d-b9b8-438e-b929-5f13ea9e483b"#uid de prueba puede ser eliminado en un futuro
 
     def test_nuxeo_ok(self):
         res = requests.get(self.URL)
@@ -137,17 +136,18 @@ class Testeo(unittest.TestCase):
 
 if __name__ == "__main__":
     test = Testeo()
-    #test.test_nuxeo_ok()
-    #test.test_nuxeo_fail()
-    #test.test_documentos_crud_ok()
-    #test.test_documentos_crud_404()
-    #test.test_documentos_crud_500()
-    #test.test_documentos_crud_query()
-    #test.test_documentos_crud_query_fail()
-    #test.test_nuxeo_upload_document()
-    #test.test_nuxeo_upload_document_fail()
-    #test.test_nuxeo_get_document()
-    #test.test_nuxeo_get_document_fail()
-    #test.test_nuxeo_post_metada()
-    #test.test_nuxeo_delete_document()
+    test.test_nuxeo_ok()    
+    test.test_documentos_crud_ok()
+    test.test_documentos_crud_404()    
+    test.test_documentos_crud_query()
+    test.test_documentos_crud_query_fail()    
+    test.test_nuxeo_upload_document_fail()
+    test.test_nuxeo_get_document()
+    test.test_nuxeo_get_document_fail()    
+    test.test_nuxeo_post_metadata_fail()    
     test.test_nuxeo_delete_document_fail()
+    #test.test_nuxeo_delete_document()
+    #test.test_nuxeo_fail()
+    #test.test_documentos_crud_500()
+    #test.test_nuxeo_upload_document()
+    #test.test_nuxeo_post_metada()
