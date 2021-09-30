@@ -89,23 +89,31 @@ class Healthcheck(Resource):
         200: 'Success',
         500: 'Nuxeo error'
     })            
-    #@app.route('/', methods=['GET'])
+    #@app.route('/')
     @cross_origin(**api_cors_config)
     def get(self):
         try:
-            pprint.pprint(nuxeo.client.is_reachable())
-            data = json.loads(json.dumps(api.__schema__))            
-            with open('swagger.json', 'w') as jsonf:
-                jsonf.write(json.dumps(api.__schema__))
+            if nuxeo.client.is_reachable():
+                pprint.pprint(nuxeo.client.is_reachable())
+                data = json.loads(json.dumps(api.__schema__))            
+                with open('swagger.json', 'w') as jsonf:
+                    jsonf.write(json.dumps(api.__schema__))
 
-            with open('swagger.yml', 'w') as yamlf:
-                yaml.dump(data, yamlf, allow_unicode=True, default_flow_style=False)
+                with open('swagger.yml', 'w') as yamlf:
+                    yaml.dump(data, yamlf, allow_unicode=True, default_flow_style=False)
 
-            DicStatus = {
-                'Status':'ok',
-                'Code':'200'
-            }
-            return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+                DicStatus = {
+                    'Status':'ok',
+                    'Code':'200'
+                }
+                
+                return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+            else:
+                DicStatus = {
+                    'Status':'Nuxeo server fail',
+                    'Code':'500'
+                }
+                return Response(json.dumps(DicStatus), status=500, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
@@ -290,7 +298,7 @@ if __name__ == "__main__":
     nuxeo = init_nuxeo()
     #app = Flask("gestor_documental_mid")
     app.register_blueprint(api_bp)
-    app.run(host='0.0.0.0', port=int(os.environ['API_PORT']))
+    app.run(host='0.0.0.0', port=int(os.environ['API_PORT']), debug=True)
     #pprint.pprint(json.dumps(api.__schema__)) #exporta la documentacion a formato json
     
 
