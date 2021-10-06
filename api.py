@@ -93,19 +93,27 @@ class Healthcheck(Resource):
     @cross_origin(**api_cors_config)
     def get(self):
         try:
-            pprint.pprint(nuxeo.client.is_reachable())
-            data = json.loads(json.dumps(api.__schema__))            
-            with open('swagger.json', 'w') as jsonf:
-                jsonf.write(json.dumps(api.__schema__))
+            if nuxeo.client.is_reachable():
+                data = json.loads(json.dumps(api.__schema__))            
+                with open('swagger.json', 'w') as jsonf:
+                    jsonf.write(json.dumps(api.__schema__))
 
-            with open('swagger.yml', 'w') as yamlf:
-                yaml.dump(data, yamlf, allow_unicode=True, default_flow_style=False)
+                with open('swagger.yml', 'w') as yamlf:
+                    yaml.dump(data, yamlf, allow_unicode=True, default_flow_style=False)
 
-            DicStatus = {
-                'Status':'ok',
-                'Code':'200'
-            }
-            return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+                DicStatus = {
+                    'Status':'ok',
+                    'Code':'200'
+                }
+                
+                return Response(json.dumps(DicStatus),status=200,mimetype='application/json')
+            else:
+                logging.error("Nuxeo service fail")
+                DicStatus = {
+                    'Status':'Nuxeo service fail',
+                    'Code':'500'
+                }
+                return Response(json.dumps(DicStatus), status=500, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
@@ -154,7 +162,7 @@ def firmar(plain_text):
         #string_json = str(objeto_firmado).replace("{'", '{ \ "').replace("': '", ' \ ": \ "').replace("': ", ' \ ": ').replace(", '", ', \ "').replace("',", '",').replace('",' , ' \ ",').replace("'}", ' \ " } ').replace(" ", "").replace('\\"', '\"')
         return objeto_firmado
         #return string_json
-    except UnsupportedAlgorithm:
+    except UnsupportedAlgorithm:        
         logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
 
         
@@ -215,7 +223,7 @@ class Upload(Resource):
             else:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[0]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
         except Exception as e:            
-                pprint.pprint("type error: " + str(e))
+                logging.error("type error: " + str(e))
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
         
@@ -239,7 +247,7 @@ class document(Resource):
             return Response(json.dumps(DicRes), status=200, mimetype='application/json')
 
         except Exception as e:
-            pprint.pprint("type error: " + str(e))
+            logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
     @api.doc(responses={
@@ -264,7 +272,7 @@ class document(Resource):
             return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
 
         except Exception as e:
-            pprint.pprint("type error: " + str(e))
+            logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
 
 
