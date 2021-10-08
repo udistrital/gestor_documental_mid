@@ -8,7 +8,7 @@ from flask_restx import Api, Resource, reqparse
 import os
 import sys
 import json, yaml
-from pprint import pformat
+from pprint import pformat, pp
 import pprint
 import logging
 import requests
@@ -238,14 +238,22 @@ class document(Resource):
     })
     @cross_origin(**api_cors_config)
     def get(self, uid):        
-        try:                        
-            doc = nuxeo.documents.get(uid = uid)
-            DicRes = doc.properties
-            blob_get = doc.fetch_blob()
-            blob64 = base64.b64encode(blob_get)
-            DicRes['file'] = str(blob64).replace("b'","'").replace("'","")                        
-            return Response(json.dumps(DicRes), status=200, mimetype='application/json')
-
+        try:                         
+            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
+            res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+            if str(res_json) != "[{}]":                 
+                doc = nuxeo.documents.get(uid = uid)
+                DicRes = doc.properties
+                blob_get = doc.fetch_blob()
+                blob64 = base64.b64encode(blob_get)
+                DicRes['file'] = str(blob64).replace("b'","'").replace("'","")       
+                return Response(json.dumps(DicRes), status=200, mimetype='application/json')
+            else:
+                DicStatus = {
+                    'Status':'document not found',
+                    'Code':'404'
+                }
+                return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
@@ -257,25 +265,57 @@ class document(Resource):
     @cross_origin(**api_cors_config)
     def delete(self, uid):        
         try:                        
-            doc = nuxeo.documents.get(uid = uid)
-            doc.delete()
-            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Enlace:'+uid)    
+            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
             res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
-            res_del =  requests.delete(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(res_json[0]['Id']))
-            res_del_json = json.loads(res_del.content.decode('utf8').replace("'", '"'))
-            DicStatus = {
-                'doc_deleted': res_del_json['Id'],
-                'nuxeo_doc_deleted': uid,
-                'Status':'ok',
-                'Code':'200'
-            }
-            return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
-
+            if str(res_json) != "[{}]":
+                objeto = {
+                    'Id': res_json[0]['Id'],
+                    'Nombre': res_json[0]['Nombre'],
+                    'Descripcion': res_json[0]['Descripcion'],
+                    'Enlace': res_json[0]['Enlace'],
+                    'TipoDocumento': res_json[0]['TipoDocumento'],
+                    'Metadatos': res_json[0]['Metadatos'],
+                    'Activo': False
+                }
+                res_del =  requests.put(str(os.environ['DOCUMENTOS_CRUD_URL']+'/documento/'+str(res_json[0]['Id'])), json=objeto )
+                res_del_json = json.loads(res_del.content.decode('utf8').replace("'", '"'))
+                DicStatus = {
+                    'doc_deleted': res_del_json['Id'],
+                    'nuxeo_doc_deleted': uid,
+                    'Status':'ok',
+                    'Code':'200'
+                }
+                return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
+            else:
+                DicStatus = {
+                    'Status':'document not found',
+                    'Code':'404'
+                }
+                return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
 
-
+#-----------------------------------------------------funcion de eliminacion que si elimina-------------------------------------------------------
+    #def delete(self, uid):        
+        #try:                        
+            #doc = nuxeo.documents.get(uid = uid)
+            #doc.delete()
+            #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Enlace:'+uid)    
+            #res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+            #res_del =  requests.delete(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(res_json[0]['Id']))
+            #res_del_json = json.loads(res_del.content.decode('utf8').replace("'", '"'))
+            #DicStatus = {
+                #'doc_deleted': res_del_json['Id'],
+                #'nuxeo_doc_deleted': uid,
+                #'Status':'ok',
+                #'Code':'200'
+            #}
+            #return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
+        #except Exception as e:
+            #logging.error("type error: " + str(e))
+            #return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
+#-----------------------------------------------------funcion de eliminacion que si elimina-------------------------------------------------------
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
     @dc.expect(request_parser)
@@ -285,9 +325,17 @@ class Metadata(Resource):
         500: 'Nuxeo error'
     })
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
-        data = request.get_json()
-        return set_metadata(uid, data['properties'])
-
+        res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
+        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        if str(res_json) != "[{}]":
+            data = request.get_json()
+            return set_metadata(uid, data['properties'])
+        else:
+            DicStatus = {
+                'Status':'document not found',
+                'Code':'404'
+            }
+            return Response(json.dumps(DicStatus), status=404, mimetype='application/json')            
 #api.add_resource(Healthcheck, '/')
 #api.add_resource(Metadata, '/document/<string:uid>/metadata')
 #api.add_resource(document, '/document/<string:uid>')
