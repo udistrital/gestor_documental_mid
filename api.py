@@ -8,7 +8,6 @@ from flask_restx import Api, Resource, reqparse
 import os
 import sys
 import json, yaml
-from pprint import pformat, pp
 import pprint
 import logging
 import requests
