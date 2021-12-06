@@ -71,7 +71,7 @@ def set_metadata(uid, metadata):
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
 app = Flask(__name__)
-api_bp = Blueprint("api", __name__, url_prefix="/v1")
+api_bp = Blueprint("api", __name__, url_prefix="/v1/")
 CORS(api_bp)
 #api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc=False,) #produccion
 api = Api(api_bp,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc="/swagger")
