@@ -19,9 +19,12 @@ NUXEO_USERNAME=[Usuario de nuxeo]
 NUXEO_PASSWORD=[Contraseña usuario nuxeo]
 DOCUMENTOS_CRUD_URL=[URL API documentos_crud]
 ```
-**NOTA:** Las variables se pueden ver en el fichero api.py ...
-**NOTA2:** [Revisar el issue de desarrollo para confirmar formatos de entrada de los endpoint](https://github.com/udistrital/gestor_documental_mid/issues/3) ...
 
+
+**NOTA:** Las variables se pueden ver en el fichero api.py ...
+
+
+**NOTA 2:** Solo para el caso de esta Api el parámetro path del target_group se cambia al valor /v1/
 ### Ejecución del Proyecto
 ```shell
 #1. Obtener el repositorio con git
@@ -46,6 +49,10 @@ python api.py
 ```shell
 # Implementado para despliegue del Sistema de integración continua CI.
 ```
+
+### Documentacion
+
+- [Documentacion y manual del servicio](https://docs.google.com/document/d/1ETG2KtDpNXN8hTyjDIe-VkVJ9gGFqzaC/edit?usp=sharing&ouid=110288693142592643207&rtpof=true&sd=true)
 
 ## Estado CI
 | Develop | Relese 0.0.1 | Master |
