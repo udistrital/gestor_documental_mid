@@ -4,7 +4,7 @@ from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request, Blueprint, abort
 from flask_cors import CORS, cross_origin
 #from flask_restful import Api, Resource
-from flask_restx import Api, Resource, reqparse, resource
+from flask_restx import Api, Resource, reqparse
 import os
 import sys
 import json, yaml
@@ -48,7 +48,7 @@ def init_nuxeo():
 
 
 def set_metadata(uid, metadata):
-    try:
+    try:    
         doc = nuxeo.documents.get(uid = uid)
         for prop, value in metadata.items():
             doc.properties[prop] = value
@@ -58,15 +58,6 @@ def set_metadata(uid, metadata):
         logging.error("type error: " + str(e))
         return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
 
-#--------------------------------SE DESHABILITA FUNCION DE DOCUMENTO POR INCOMPATIBLIDAD CON EL FLUJO DOCUMENTAL DE CUMPLIDOS CLIENTE------------------------
-#def validate_document_repeated(nombre):
-    #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Nombre:'+nombre)    
-    #if res.status_code == 200:
-        #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
-        #return True if str(res_json) != "[{}]" else False
-    #else:
-        #return res.status_code
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
@@ -178,8 +169,16 @@ class Upload(Resource):
     def post(self):
         try:            
             data = request.get_json()
+            if len(str(data[0]['file'])) < 1000:
+                error_dict = {
+                    'Status':'invalid pdf file',
+                    'Code':'400'
+                }                
+                return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+
             IdDocumento = data[0]['IdTipoDocumento']
             res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+
             if res.status_code == 200:                
                 res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
                 up_file = Document(
@@ -232,9 +231,9 @@ class Upload(Resource):
 class document(Resource):        
 
     @app.errorhandler(404)
-    def document_not_found(e):
+    def not_found_resource(e):
         DicStatus = {
-            'Status':'document not found',
+            'Status':'Not found resource',
             'Code':'404'
         }
         return Response(json.dumps(DicStatus), status=404, mimetype='application/json')        
@@ -249,7 +248,7 @@ class document(Resource):
         try:                  
             resource = uid
             if resource is None:
-                abort(404, description="document not found")
+                abort(404, description="Not found resource")
 
             res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
             res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
@@ -272,7 +271,8 @@ class document(Resource):
 
     @api.doc(responses={
         200: 'Success',
-        500: 'Nuxeo error'
+        500: 'Nuxeo error',
+        404: 'Not found'
     })
     @cross_origin(**api_cors_config)
     def delete(self, uid):        
@@ -334,9 +334,11 @@ class Metadata(Resource):
     @cross_origin(**api_cors_config)
     @api.doc(responses={
         200: 'Success',
-        500: 'Nuxeo error'
+        500: 'Nuxeo error',
+        404: 'Not found'
     })
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
+        
         res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
         res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
         if str(res_json) != "[{}]":
