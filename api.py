@@ -1,10 +1,10 @@
 from nuxeo.client import Nuxeo
 from nuxeo.models import Document, FileBlob, BufferBlob
 from nuxeo.exceptions import UploadError
-from flask import Flask, Response, request, Blueprint
+from flask import Flask, Response, request, Blueprint, abort
 from flask_cors import CORS, cross_origin
 #from flask_restful import Api, Resource
-from flask_restx import Api, Resource, reqparse
+from flask_restx import Api, Resource, reqparse, resource
 import os
 import sys
 import json, yaml
@@ -231,13 +231,26 @@ class Upload(Resource):
 @dc.route('/<string:uid>', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class document(Resource):        
 
+    @app.errorhandler(404)
+    def document_not_found(e):
+        DicStatus = {
+            'Status':'document not found',
+            'Code':'404'
+        }
+        return Response(json.dumps(DicStatus), status=404, mimetype='application/json')        
+
     @api.doc(responses={
         200: 'Success',
-        500: 'Nuxeo error'
-    })
+        500: 'Nuxeo error',
+        404: 'Not found'
+    })    
     @cross_origin(**api_cors_config)
     def get(self, uid):        
-        try:                         
+        try:                  
+            resource = uid
+            if resource is None:
+                abort(404, description="document not found")
+
             res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
             res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
             if str(res_json) != "[{}]":                 
