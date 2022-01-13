@@ -225,6 +225,20 @@ class Upload(Resource):
             return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
         except Exception as e:            
                 logging.error("type error: " + str(e))
+                
+                if str(e) == "'IdTipoDocumento'":
+                    error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+                elif str(e) == "'nombre'":
+                    error_dict = {'Status':'the field nombre is required','Code':'400'}
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')
+                elif str(e) == "'file'":
+                    error_dict = {'Status':'the field file is required','Code':'400'}
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')                                
+                elif str(e) == "'metadatos'":                
+                    error_dict = {'Status':'the field metadatos is required','Code':'400'}
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
         
