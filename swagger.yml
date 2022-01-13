@@ -41,6 +41,8 @@ paths:
       responses:
         '200':
           description: Success
+        '404':
+          description: Not found
         '500':
           description: Nuxeo error
       tags:
@@ -83,6 +85,8 @@ paths:
       responses:
         '200':
           description: Success
+        '404':
+          description: Not found
         '500':
           description: Nuxeo error
       tags:
