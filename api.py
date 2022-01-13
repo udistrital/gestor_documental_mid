@@ -225,7 +225,7 @@ class Upload(Resource):
             return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
         except Exception as e:            
                 logging.error("type error: " + str(e))
-                
+
                 if str(e) == "'IdTipoDocumento'":
                     error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
                     return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
@@ -259,7 +259,7 @@ class document(Resource):
         200: 'Success',
         500: 'Nuxeo error',
         404: 'Not found'
-    })    
+    })
     @cross_origin(**api_cors_config)
     def get(self, uid):        
         try:                  
@@ -347,26 +347,38 @@ class document(Resource):
 #-----------------------------------------------------funcion de eliminacion que si elimina-------------------------------------------------------
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
+
     @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
-        404: 'Not found'
+        404: 'Not found',
+        400:  'Bad request'
     })
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
-        
-        res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
-        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
-        if str(res_json) != "[{}]":
-            data = request.get_json()
-            return set_metadata(uid, data['properties'])
-        else:
-            DicStatus = {
-                'Status':'document not found',
-                'Code':'404'
-            }
-            return Response(json.dumps(DicStatus), status=404, mimetype='application/json')            
+
+        try:    
+            data = request.get_json()            
+            if data is None or str(data) == "{}" :
+                DicStatus = {'Status':'invalid request body','Code':'400'}
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')        
+
+            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
+            res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+            if str(res_json) != "[{}]":                
+                return set_metadata(uid, data['properties']) 
+            else:
+                DicStatus = {'Status':'document not found', 'Code':'404'}
+                return Response(json.dumps(DicStatus), status=404, mimetype='application/json')            
+        except Exception as e:            
+            logging.error("type error: " + str(e))
+            if '400' in str(e):
+                DicStatus = {'Status':'invalid request body', 'Code':'400'}
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
+            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
+            
+
 #api.add_resource(Healthcheck, '/')
 #api.add_resource(Metadata, '/document/<string:uid>/metadata')
 #api.add_resource(document, '/document/<string:uid>')
