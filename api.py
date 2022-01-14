@@ -238,7 +238,9 @@ class Upload(Resource):
                 elif str(e) == "'metadatos'":                
                     error_dict = {'Status':'the field metadatos is required','Code':'400'}
                     return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
-
+                elif '400' in str(e):
+                    DicStatus = {'Status':'invalid request body', 'Code':'400'}
+                    return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
                 return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
         
