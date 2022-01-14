@@ -162,7 +162,8 @@ class Upload(Resource):
     #@app.route("/upload", methods=["POST"])
     @api.doc(responses={
         200: 'Success',
-        500: 'Nuxeo error'
+        500: 'Nuxeo error',
+        400: 'Bad request'
     })
     @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
@@ -257,10 +258,20 @@ class document(Resource):
         }
         return Response(json.dumps(DicStatus), status=404, mimetype='application/json')        
 
+    @app.errorhandler(400)
+    def invalid_parameter(e):
+        DicStatus = {
+            'Status':'invalid parameter',
+            'Code':'400'
+        }
+        return Response(json.dumps(DicStatus), status=400, mimetype='application/json')        
+    
+
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
-        404: 'Not found'
+        404: 'Not found',
+        400: 'Bad request'
     })
     @cross_origin(**api_cors_config)
     def get(self, uid):        
@@ -268,6 +279,9 @@ class document(Resource):
             resource = uid
             if resource is None:
                 abort(404, description="Not found resource")
+
+            if uid.count('-') != 4 or len(uid) != 36:                
+                abort(400, description="invalid parameter")
 
             res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
             res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
@@ -286,16 +300,23 @@ class document(Resource):
                 return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
+            if '400' in str(e):
+                DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
-        404: 'Not found'
+        404: 'Not found',
+        400: 'Bad request'
     })
     @cross_origin(**api_cors_config)
     def delete(self, uid):        
         try:                        
+            if uid.count('-') != 4 or len(uid) != 36:                
+                abort(400, description="invalid parameter")
+
             res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
             res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
             if str(res_json) != "[{}]":
@@ -325,6 +346,9 @@ class document(Resource):
                 return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
         except Exception as e:
             logging.error("type error: " + str(e))
+            if '400' in str(e):
+                DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')            
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
 
 #-----------------------------------------------------funcion de eliminacion que si elimina-------------------------------------------------------
@@ -356,11 +380,13 @@ class Metadata(Resource):
         200: 'Success',
         500: 'Nuxeo error',
         404: 'Not found',
-        400:  'Bad request'
+        400: 'Bad request'
     })
-    def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta 
+    def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta             
 
         try:    
+            if uid.count('-') != 4 or len(uid) != 36:                
+                abort(400, description="invalid parameter")
             data = request.get_json()            
             if data is None or str(data) == "{}" :
                 DicStatus = {'Status':'invalid request body','Code':'400'}
@@ -375,10 +401,14 @@ class Metadata(Resource):
                 return Response(json.dumps(DicStatus), status=404, mimetype='application/json')            
         except Exception as e:            
             logging.error("type error: " + str(e))
+            if 'invalid parameter' in str(e):
+                DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
             if '400' in str(e):
                 DicStatus = {'Status':'invalid request body', 'Code':'400'}
                 return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
-            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')            
+            
+            return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
             
 
 #api.add_resource(Healthcheck, '/')
