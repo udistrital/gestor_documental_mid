@@ -371,6 +371,8 @@ class document(Resource):
                     'Status':'ok',
                     'Code':'200'
                 }
+                doc = nuxeo.documents.get(uid = uid)
+                doc.delete()
                 return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
             else:
                 DicStatus = {
