@@ -4,7 +4,7 @@ from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request, Blueprint, abort
 from flask_cors import CORS, cross_origin
 #from flask_restful import Api, Resource
-from flask_restx import Api, Resource, reqparse
+from flask_restx import Api, Resource, reqparse, fields
 import os
 import sys
 import json, yaml
@@ -69,7 +69,41 @@ api = Api(api_bp,version='1.0', title='gestor_documental_mid', description='Api 
 nx = api.namespace("/", description="Nuxeo service Healthcheck")
 dc = api.namespace("document", description="Nuxeo document operations")
 request_parser = reqparse.RequestParser(bundle_errors=True)
-request_parser.add_argument('list', location='json', type=list)
+request_parser.add_argument('list', location='json', type=list, required=True)
+
+metadata_doc_crud_model = api.model('documentos_crud_metadata', {
+    'dato_a': fields.String,
+    'dato_b': fields.String,
+    'dato_n': fields.String
+})
+
+nuxeo_tags = api.model('nuxeo_tags', {
+    'label': fields.String,
+    'username': fields.String
+})
+
+properties = api.model('Metadata_properties', {
+    'dc:description': fields.String,
+    'dc:source': fields.String,
+    'dc:publisher': fields.String,
+    'dc:rights': fields.String,
+    'dc:title': fields.String,
+    'dc:language': fields.String,
+    'nxtag:tags': fields.Nested(nuxeo_tags,as_list=True)
+})
+
+metadata_dublin_core_model = api.model('Nuxeo_dublin_core_metadata', {
+    'properties': fields.Nested(properties)
+})
+
+upload_model = [api.model('upload_resquest', {
+    'IdTipoDocumento': fields.Integer,
+    'nombre': fields.String,
+    #'metadatos': fields.String(default='{}'),
+    'metadatos': fields.Nested(metadata_doc_crud_model),
+    'descripcion': fields.String,
+    'file': fields.String,
+})]
 
 
 #@api.route('/')
@@ -164,7 +198,7 @@ class Upload(Resource):
         200: 'Success',
         500: 'Nuxeo error',
         400: 'Bad request'
-    })
+    }, body=upload_model)
     @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
     def post(self):
@@ -374,14 +408,16 @@ class document(Resource):
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
 
-    @dc.expect(request_parser)
-    @cross_origin(**api_cors_config)
+    
+    
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
         404: 'Not found',
         400: 'Bad request'
-    })
+    },body=metadata_dublin_core_model)
+    @dc.expect(request_parser)
+    @cross_origin(**api_cors_config)
     def post(self, uid):#agrega metadatos al documento, en caso de agregar un metadato que no exista en el esquema este no lo tendra en cuenta             
 
         try:    
