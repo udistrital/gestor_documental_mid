@@ -93,6 +93,12 @@ paths:
   /document/{uid}:
     delete:
       operationId: delete_document_/document/<string:uid>
+      parameters:
+      - default: false
+        description: Conservar documento en Nuxeo?
+        in: query
+        name: versionar
+        type: boolean
       responses:
         '200':
           description: Success

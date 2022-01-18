@@ -4,7 +4,7 @@ from nuxeo.exceptions import UploadError
 from flask import Flask, Response, request, Blueprint, abort
 from flask_cors import CORS, cross_origin
 #from flask_restful import Api, Resource
-from flask_restx import Api, Resource, reqparse, fields
+from flask_restx import Api, Resource, reqparse, fields, inputs
 import os
 import sys
 import json, yaml
@@ -70,6 +70,8 @@ nx = api.namespace("/", description="Nuxeo service Healthcheck")
 dc = api.namespace("document", description="Nuxeo document operations")
 request_parser = reqparse.RequestParser(bundle_errors=True)
 request_parser.add_argument('list', location='json', type=list, required=True)
+query_parser = reqparse.RequestParser()
+query_parser.add_argument('versionar', type=bool, help='Conservar documento en Nuxeo?', default=False)
 
 metadata_doc_crud_model = api.model('documentos_crud_metadata', {
     'dato_a': fields.String,
@@ -306,7 +308,7 @@ class document(Resource):
         500: 'Nuxeo error',
         404: 'Not found',
         400: 'Bad request'
-    })
+    })    
     @cross_origin(**api_cors_config)
     def get(self, uid):        
         try:                  
@@ -345,9 +347,13 @@ class document(Resource):
         404: 'Not found',
         400: 'Bad request'
     })
+    @dc.expect(query_parser)
     @cross_origin(**api_cors_config)
     def delete(self, uid):        
         try:                        
+            versionar = request.args.get("versionar")
+            versionar = False if versionar is None else eval(versionar.capitalize())
+
             if uid.count('-') != 4 or len(uid) != 36:                
                 abort(400, description="invalid parameter")
 
@@ -371,8 +377,9 @@ class document(Resource):
                     'Status':'ok',
                     'Code':'200'
                 }
-                doc = nuxeo.documents.get(uid = uid)
-                doc.delete()
+                if not versionar:
+                    doc = nuxeo.documents.get(uid = uid)
+                    doc.delete()
                 return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
             else:
                 DicStatus = {
