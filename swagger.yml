@@ -1,6 +1,60 @@
 basePath: /v1
 consumes:
 - application/json
+definitions:
+  Metadata_properties:
+    properties:
+      dc:description:
+        type: string
+      dc:language:
+        type: string
+      dc:publisher:
+        type: string
+      dc:rights:
+        type: string
+      dc:source:
+        type: string
+      dc:title:
+        type: string
+      nxtag:tags:
+        items:
+          $ref: '#/definitions/nuxeo_tags'
+        type: array
+    type: object
+  Nuxeo_dublin_core_metadata:
+    properties:
+      properties:
+        $ref: '#/definitions/Metadata_properties'
+    type: object
+  documentos_crud_metadata:
+    properties:
+      dato_a:
+        type: string
+      dato_b:
+        type: string
+      dato_n:
+        type: string
+    type: object
+  nuxeo_tags:
+    properties:
+      label:
+        type: string
+      username:
+        type: string
+    type: object
+  upload_resquest:
+    properties:
+      IdTipoDocumento:
+        type: integer
+      descripcion:
+        type: string
+      file:
+        type: string
+      metadatos:
+        $ref: '#/definitions/documentos_crud_metadata'
+      nombre:
+        type: string
+    type: object
 info:
   description: Api mid para la autenticacion de documentos en Nuxeo
   title: gestor_documental_mid
@@ -24,23 +78,47 @@ paths:
         name: payload
         required: true
         schema:
-          properties:
-            list:
-              type: string
-          type: object
+          items:
+            $ref: '#/definitions/upload_resquest'
+          type: array
       responses:
         '200':
           description: Success
+        '400':
+          description: Bad request
         '500':
           description: Nuxeo error
       tags:
       - document
   /document/{uid}:
+    delete:
+      operationId: delete_document_/document/<string:uid>
+      parameters:
+      - default: false
+        description: Conservar documento en Nuxeo?
+        in: query
+        name: versionar
+        type: boolean
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '404':
+          description: Not found
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
     get:
       operationId: get_document_/document/<string:uid>
       responses:
         '200':
           description: Success
+        '400':
+          description: Bad request
+        '404':
+          description: Not found
         '500':
           description: Nuxeo error
       tags:
@@ -65,13 +143,14 @@ paths:
         name: payload
         required: true
         schema:
-          properties:
-            list:
-              type: string
-          type: object
+          $ref: '#/definitions/Nuxeo_dublin_core_metadata'
       responses:
         '200':
           description: Success
+        '400':
+          description: Bad request
+        '404':
+          description: Not found
         '500':
           description: Nuxeo error
       tags:
