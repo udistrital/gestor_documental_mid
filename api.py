@@ -294,7 +294,6 @@ class Store_Document(Resource):
         response_array = []
         try:
             data = request.get_json()
-            print("Voy a impirmir data en formato json")
             #Se hace un ciclo para iterar sobre el array que se recibe en formato json, se recibe uno normalmente
             for i in range(len(data)):
                 #Se valida que sea un archivo en pdf
