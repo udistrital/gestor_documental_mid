@@ -5,3 +5,4 @@ flask-restx
 nuxeo[oauth2]
 cryptography
 flask-cors
+werkzeug==2.1.2
