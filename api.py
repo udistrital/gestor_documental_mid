@@ -493,9 +493,6 @@ class document(Resource):
 #-----------------------------------------------------funcion de eliminacion que si elimina-------------------------------------------------------
 @dc.route('/<string:uid>/metadata', doc={'params':{'uid': 'UID del documento generado en Nuxeo'}})
 class Metadata(Resource):
-
-    
-    
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
