@@ -191,6 +191,7 @@ def firmar(plain_text):
     except UnsupportedAlgorithm:        
         logging.error("signature failed, type error: " + str(UnsupportedAlgorithm))
 
+
         
 #@api.route('/upload')
 @dc.route("/upload")
