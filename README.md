@@ -23,8 +23,6 @@ DOCUMENTOS_CRUD_URL=[URL API documentos_crud]
 
 **NOTA:** Las variables se pueden ver en el fichero api.py ...
 
-
-
 **NOTA 2:** Solo para el caso de esta Api el parámetro path del target_group se cambia al valor /v1/
 ### Ejecución del Proyecto
 ```shell
