@@ -20,7 +20,6 @@ NUXEO_PASSWORD=[Contraseña usuario nuxeo]
 DOCUMENTOS_CRUD_URL=[URL API documentos_crud]
 ```
 
-
 **NOTA:** Las variables se pueden ver en el fichero api.py ...
 
 
