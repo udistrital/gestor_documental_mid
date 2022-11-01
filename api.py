@@ -318,6 +318,23 @@ class Store_Document(Resource):
                     )
 
                     file = nuxeo.documents.create(up_file_to_nuxeo, parent_path=str(res_json['Workspace']))
+
+                    batch = nuxeo.uploads.batch()
+                    blob = base64.b64decode(data[i]['file'])
+                    with open(os.path.expanduser('./documents/document.pdf'), 'wb') as fout:
+                        fout.write(blob)
+                    try:
+                        uploaded = batch.upload(FileBlob('./documents/document.pdf'), chunked=True)
+                        #uploaded = batch.upload(BufferBlob(blob), chunked=True)
+                    except UploadError:
+                        return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+                    # Attach it to the file
+                    operation = nuxeo.operations.new('Blob.AttachOnDocument')
+                    #operation.params = {'document': str(res_json['Workspace'])+'/'+data[i]['nombre']}
+                    operation.params = {'document': str(file.uid)}
+                    operation.input_obj = uploaded
+                    operation.execute()
+
                     metadata = str({** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
 
                     metadatos_to_documentos = {
