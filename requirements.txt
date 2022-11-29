@@ -7,3 +7,7 @@ cryptography
 flask-cors
 packaging
 werkzeug
+pdfminer
+PyPDF2
+pdfminer.six
+reportlab
