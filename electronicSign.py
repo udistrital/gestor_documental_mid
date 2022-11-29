@@ -50,24 +50,24 @@ class ElectronicSign:
     def signature(self, pdfIn, yPosition, datos):
         x = 80
         y = yPosition
-        signPageSize = 4 + len(datos["firmantes"]) + len(datos["representantes"]) + 3 #Espacios
+        signPageSize = 3 + len(datos["firmantes"]) + len(datos["representantes"]) + 2.5 #Espacios
 
         wraped_firmantes = []
         for firmante in datos["firmantes"]:
-            text = firmante["nombre"] + ". " + firmante["tipoId"] + " " + firmante["identificacion"]
-            text = "\n".join(wrap(text, 65))
+            text = firmante["cargo"] + ": " + firmante["nombre"] + ". " + firmante["tipoId"] + " " + firmante["identificacion"]
+            text = "\n".join(wrap(text, 60))
             signPageSize += text.count("\n")
             wraped_firmantes.append(text)
 
         wraped_representantes = []
         for representante in datos["representantes"]:
-            text = representante["nombre"] + ". " + representante["tipoId"] + " " + representante["identificacion"]
-            text = "\n".join(wrap(text, 65))
+            text = representante["cargo"] + ": " + representante["nombre"] + ". " + representante["tipoId"] + " " + representante["identificacion"]
+            text = "\n".join(wrap(text, 60))
             text.count("\n")
             signPageSize += text.count("\n")
             wraped_representantes.append(text)
 
-        wraped_firma = "\n".join(wrap(datos["firma"], 65))
+        wraped_firma = "\n".join(wrap(datos["firma"], 60))
         signPageSize += wraped_firma.count("\n")
 
         signPageSize *= 10
@@ -152,16 +152,6 @@ class ElectronicSign:
         t.setFont('VeraBd', 8)
         y = y - 10
         t.setTextOrigin(x, y)
-        t.textLine("Dependencia:")
-        t.setFont('Vera', 8)
-        t.setTextOrigin(x+140, y)
-        t.textLine(datos["dependencia"])
-
-        y = y - 5
-
-        t.setFont('VeraBd', 8)
-        y = y - 10
-        t.setTextOrigin(x, y)
         t.textLine("Firma elecronica:")
         t.setFont('Vera', 8)
         t.setTextOrigin(x+140, y)
@@ -177,7 +167,6 @@ class ElectronicSign:
         fechaHoraActual = time.strftime("%x") + " " + time.strftime("%X")
         t.setTextOrigin(x+140, y)
         t.textLine(fechaHoraActual)
-
 
         c.drawText(t)
         c.showPage()

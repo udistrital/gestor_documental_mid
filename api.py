@@ -418,20 +418,22 @@ class Firma_Electronica(Resource):
                         fout.write(blob)
                       
                     firma_electronica = firmar(str(data[i]['file']))
-                    
+
                     datos = {
                         "firma": firma_electronica["llaves"]["firma"],
                         "firmantes": data[i]["firmantes"],
                         "representantes": data[i]["representantes"],
-                        "tipo_documento": res_json["Nombre"],
-                        "dependencia": data[i]["dependencia"]
+                        "tipo_documento": res_json["Nombre"]
                     }
 
                     ElectronicSign().estamparFirmaElectronica(datos)
-                    all_metadata = str({** firma_electronica, ** data[i]['metadatos'], ** data[i]["firmantes"], ** data[i]["representantes"], ** data[i]["dependencia"]}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
+                    all_metadata = str({** firma_electronica, ** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
+
                     DicPostDoc = {
-                        'Metadatos' : all_metadata,
-                        'Nombre' : data[i]['nombre'],
+                        'Metadatos': all_metadata,
+                        "firmantes": data[i]["firmantes"], 
+                        "representantes": data[i]["representantes"], 
+                        'Nombre': data[i]['nombre'],
                         "Descripcion": data[i]['descripcion'],
                         'TipoDocumento' :  res_json,
                         'Activo': True
