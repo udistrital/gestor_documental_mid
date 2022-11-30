@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-from electronicSign import ElectronicSign
+from app.electronicSign import ElectronicSign
 
 # Nuxeo client
 nuxeo = None
