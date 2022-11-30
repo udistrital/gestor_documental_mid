@@ -70,6 +70,26 @@ paths:
           description: Nuxeo error
       tags:
       - /
+  /document/firma_electronica:
+    post:
+      operationId: post_firma__electronica
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/upload_resquest'
+          type: array
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '500':
+          description: Nuxeo error
+      tags:
+      - document
   /document/store_document:
     post:
       operationId: post_store__document
