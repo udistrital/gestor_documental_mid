@@ -20,7 +20,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-import http_import
 #from app.electronicSign import ElectronicSign
 
 # Imports ElectronicSign
