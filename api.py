@@ -6,6 +6,7 @@ from flask_cors import CORS, cross_origin
 #from flask_restful import Api, Resource
 from flask_restx import Api, Resource, reqparse, fields, inputs
 import os
+from stat import S_IREAD, S_IRGRP, S_IROTH
 import sys
 import json, yaml
 import pprint
@@ -20,6 +21,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.fernet import Fernet
 #from app.electronicSign import ElectronicSign
 
 # Imports ElectronicSign
@@ -158,11 +160,19 @@ class ElectronicSign:
                 break
 
         return y-20
-        
+
+    def hashCode(self, firma):
+        key = 'GDS1fXKp6mf0bCm7-G_4XL8tO5gZEmJVCab5qd06wMo='
+        fernet = Fernet(key)
+
+        return fernet.encrypt(firma.encode()).decode("utf-8")
+
     def signature(self, pdfIn, yPosition, datos):
         x = 80
         y = yPosition
         signPageSize = 3 + len(datos["firmantes"]) + len(datos["representantes"]) + 2.5 #Espacios
+
+        firma = self.hashCode(str(datos["idDoc"]) + datos["firma"])
 
         wraped_firmantes = []
         for firmante in datos["firmantes"]:
@@ -179,7 +189,7 @@ class ElectronicSign:
             signPageSize += text.count("\n")
             wraped_representantes.append(text)
 
-        wraped_firma = "\n".join(wrap(datos["firma"], 60))
+        wraped_firma = "\n".join(wrap(firma, 60))
         signPageSize += wraped_firma.count("\n")
 
         signPageSize *= 10
@@ -335,12 +345,12 @@ class ElectronicSign:
             input_page = documentPdf.getPage(page_number)
             output_file.addPage(input_page)
 
-        
         output_file.addBlankPage()
         output_file.getPage(output_file.getNumPages()-1).mergePage(signPdf.getPage(0))
 
         with open("documents/documentSigned.pdf", "wb") as outputStream:
             output_file.write(outputStream)
+        
 
 
     def estamparFirmaElectronica(self, datos):
@@ -352,6 +362,8 @@ class ElectronicSign:
             self.estamparUltimaPagina(pdfIn)
         else:
             self.estamparNuevaPagina(pdfIn)
+
+        os.chmod("./documents/documentSigned.pdf", S_IREAD)
 
     #_________________________________________
 
@@ -668,12 +680,12 @@ class Firma_Electronica(Resource):
                     firma_electronica = firmar(str(data[i]['file']))
 
                     datos = {
+                        "idDoc": res_json["Id"],
                         "firma": firma_electronica["llaves"]["firma"],
                         "firmantes": data[i]["firmantes"],
                         "representantes": data[i]["representantes"],
                         "tipo_documento": res_json["Nombre"]
                     }
-
 
                     electronicSign = ElectronicSign()
                     electronicSign.estamparFirmaElectronica(datos)
