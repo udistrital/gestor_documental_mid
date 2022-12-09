@@ -887,7 +887,6 @@ class verify(Resource):
             data = request.get_json()
             for i in range(len(data)):
                 firma = data[i]["firma"].encode()
-                #firma = b'gAAAAABjjf9PrPDl5n8YnaDqJVaAh2CnLCw_ZSeEJNhXlhIo-zb-9Q0W3zl4idWgXbPImlEmw_5ZTa18v6hCU7YcpIlitaJeLU7pakqch8vOa7fW2GPU2jBVKpHcUtYCCmb6Vgtrjx6tihDuG4NMTLgylrSI7faBhvzneqgSam2c336H8_FL1rXq_IeLcx3faUzRH7sI4l0agjRNLAfzcdPHqLbBmwlWbt8G0J4EcjsfXQHWhl29rWdR8J0SzDvIhYtvbYMIyhV8OJS58gRR4jYBF3h6OmQP9GeGQAmRz8XpO_rQ1EBvm1tKtlDaDIDd3p2b2uKPGDRIXPLre8Y3zW6Lid0S2xuSge3ipXW2AcY-QEaF3ywcimvkuElJ3rbEI0rY45Ak-0hkLKw1MI7anz5qgSlwOlV8HtsNbK7zW8OoREPu2z_Ea3IzU6lC4VJp2p2BifTppwBwFOwT_zqMcXxTf7GapWBoaUfi_NXy9DjJ3GtVE4z9o9qkwUFrzkTh00ZdsXj7OblrmAPqGuwp10QQZcLEtEWVHgxbJwjhWgVq-mcMkyfaCOg='
                 try:
                     firmaID = ElectronicSign().descrypt(firma).decode().split("/////")
                     IdDocumento = firmaID[0]
