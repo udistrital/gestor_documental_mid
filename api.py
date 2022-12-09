@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.fernet import Fernet
 #from app.electronicSign import ElectronicSign
 
 # Imports ElectronicSign
@@ -42,7 +43,7 @@ import time
 nuxeo = None
 
 # Environmen variables list
-variables = ['API_PORT', 'NUXEO_URL', 'NUXEO_USERNAME', 'NUXEO_PASSWORD', 'DOCUMENTOS_CRUD_URL']
+variables = ['API_PORT', 'NUXEO_URL', 'NUXEO_USERNAME', 'NUXEO_PASSWORD', 'DOCUMENTOS_CRUD_URL', 'ENCRYPTION_KEY']
 
 api_cors_config = {
   "origins": ["*"],
@@ -62,6 +63,8 @@ def init_nuxeo():
         auth=(str(os.environ['NUXEO_USERNAME']), str(os.environ['NUXEO_PASSWORD']))
     )
 
+def jsonToString(json):
+    return {** json};
 
 def set_metadata(uid, metadata):
     try:    
@@ -125,11 +128,29 @@ upload_model = [api.model('upload_resquest', {
 
 # Class ElectronicSign
 class ElectronicSign:
+    """
+        Permite el manejo de pdf para estampa la firma electronica en un documento,
+        ademas de calcular el espacio necesario para estampar dicha firma con su información.
+        También permite la encriptación desincriptación de una firma
+    """
     def __init__(self):
         self.YFOOTER = 80
         self.YHEEADER = 100
+        key = os.environ['ENCRYPTION_KEY']
+        self.fernet = Fernet(key)
 
     def lastPageItems(self, pdfIn):
+        """
+            Analiza el pdf para determinar las posiciones de sus elementos
+            Parameters
+            ----------
+            pdfIn : _io.BufferedReader
+                pdf abierto en buffer como lectura
+           
+            Return
+            ----------
+            list : lista de posiciones en y de cada uno de los elementos de un pdf
+        """
         rsrcmgr = PDFResourceManager()
         laparams = LAParams()
         device = PDFPageAggregator(rsrcmgr, laparams=laparams)
@@ -158,8 +179,51 @@ class ElectronicSign:
                 break
 
         return y-20
+
+    def descrypt(self, codigo):
+        """
+            Desencripta un texto 
+            Parameters
+            ----------
+            codigo : bytes
+                codigo en formato bytes encriptado
+            Return
+            ----------
+            bytes : codigo en formato bytes desencriptado
+        """
+        return self.fernet.decrypt(codigo)
+
+    def hashCode(self, firma):
+        """
+            Desencripta un texto 
+            Parameters
+            ----------
+            codigo : String
+                codigo desencriptado
+            Return
+            ----------
+            bytes : codigo en formato bytes encriptado
+        """
+        return self.fernet.encrypt(firma.encode())
         
     def signature(self, pdfIn, yPosition, datos):
+        """
+            Crea el estampado de la firma electronica
+            Parameters
+            ----------
+            pdfIn : _io.BufferedReader
+                pdf abierto en buffer como lectura
+            yPosition : int
+                posición del ultimo elemeento del pdf
+            datos : dict
+                 diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma, idDoc}
+
+            Return
+            ----------
+            String : id y firma encriptados
+            Boolean : True si se puede estampar en la ultima pagina, False si se debe crear una nueva pagina
+        """
+
         x = 80
         y = yPosition
         signPageSize = 3 + len(datos["firmantes"]) + len(datos["representantes"]) + 2.5 #Espacios
@@ -179,14 +243,22 @@ class ElectronicSign:
             signPageSize += text.count("\n")
             wraped_representantes.append(text)
 
-        wraped_firma = "\n".join(wrap(datos["firma"], 60))
+        firmaID = str(datos["idDoc"]) + "/////" + datos["firma"]
+
+        firma = self.hashCode(firmaID).decode()
+
+        wraped_firma = "\n".join(wrap(firma, 60))
+  
         signPageSize += wraped_firma.count("\n")
 
         signPageSize *= 10
 
+
+
         if(yPosition - self.YFOOTER < signPageSize):
             y = PdfFileReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER 
-        
+
+
         c = canvas.Canvas('documents/signature.pdf')
         # Create the signPdf from an image
         # c = canvas.Canvas('signPdf.pdf')
@@ -203,6 +275,8 @@ class ElectronicSign:
         c.setFont('Vera', 8)
         t = c.beginText()
         
+
+
         if len(datos["firmantes"]) > 1:
             t.setFont('VeraBd', 8)
             y = y - 15
@@ -213,6 +287,7 @@ class ElectronicSign:
             y = y - 15
             t.setTextOrigin(x, y)
             t.textLine("Firmante:")
+
 
         count = 1
         t.setFont('Vera', 8)
@@ -285,22 +360,20 @@ class ElectronicSign:
         c.save()
 
         if(yPosition - self.YFOOTER > signPageSize):
-            return True
+            return firma, True
         else:
-            return False
-        # c.drawString(x, y-45, "Tipo de documento: Certificado Laboral")
-        # c.drawString(x, y-55, "Dirrección IP: 80.80.80.80")
-        # c.drawString(x, y-35, "Fecha y hora: 16/11/2022 07:15 UTC")
-        # c.drawString(x, y-25, "Firma Electronica: " + firma_electronica["llaves"]["firma"])
-
-        # c.drawString(x+250, y-25, "Firma Electronica: x12a-2313-o0in-31af")
-        # c.drawString(x+250, y-35, "Fecha y hora: 16/11/2022 07:15 UTC")
-        # c.drawString(x+250, y-45, "Tipo de documento: Certificado Laboral")
-        # c.drawString(x+250, y-55, "Dirrección IP: 80.80.80.80")
-            
-        # c.save() 
-
+            return firma, False
+ 
     def estamparUltimaPagina(self, pdfIn):
+
+        """
+            Estampa la firma en la ultima pagina del cocumento ya existente
+            Parameters
+            ----------
+            pdfIn : _io.BufferedReader
+                pdf abierto en buffer como lectura
+        """
+
         signPdf = PdfFileReader(open("signature.pdf", "rb"))
         documentPdf = PdfFileReader(pdfIn)
         
@@ -322,6 +395,14 @@ class ElectronicSign:
             output_file.write(outputStream)
 
     def estamparNuevaPagina(self, pdfIn):
+        """
+            Crea una nueva pagina y la estampa para ser unida con el pdf
+
+            Parameters
+            ----------
+            pdfIn : _io.BufferedReader
+                pdf abierto en buffer como lectura
+        """
         signPdf = PdfFileReader(open("documents/signature.pdf", "rb"))
         documentPdf = PdfFileReader(pdfIn)
 
@@ -344,14 +425,29 @@ class ElectronicSign:
 
 
     def estamparFirmaElectronica(self, datos):
+        """
+            Metodo principal para el proceso de estampado
+
+            Parameters
+            ----------
+            datos : dict
+                diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma, idDoc}
+
+            Returns
+            -------
+            firmaEncriptada : String
+                firma con id encriptadas en un solo texto
+        """
         pdfIn = open("documents/documentToSign.pdf","rb")
         yPosition = self.signPosition(pdfIn)
-        suficienteEspacio = self.signature(pdfIn, yPosition, datos)
+        firmaEncriptada, suficienteEspacio = self.signature(pdfIn, yPosition, datos)
 
         if suficienteEspacio:
             self.estamparUltimaPagina(pdfIn)
         else:
             self.estamparNuevaPagina(pdfIn)
+
+        return firmaEncriptada
 
     #_________________________________________
 
@@ -623,11 +719,16 @@ class Store_Document(Resource):
                     return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
                 return Response(json.dumps({'Status':'500','Error':str(exception)}), status=500, mimetype='application/json')
 
-
 #@api.route('/firma_electronica')
 @dc.route("/firma_electronica")
 class Firma_Electronica(Resource):
     #@app.route("/firma_electronica", methods=["POST"])
+
+    """ 
+    Permite estampar la firma electronica con sus respectivos datos (firmantes, representantes, firma electronica, fecha, tipo documento)
+    Endpoint /documentos/firma_electronica
+    Methods = ["POST"]
+    """
     @api.doc(responses={
         200: 'Success',
         500: 'Nuxeo error',
@@ -636,6 +737,7 @@ class Firma_Electronica(Resource):
     @dc.expect(request_parser)
     @cross_origin(**api_cors_config)
     def post(self):
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
         response_array = []
         try:            
             data = request.get_json()
@@ -650,7 +752,7 @@ class Firma_Electronica(Resource):
                 IdDocumento = data[i]['IdTipoDocumento']
                 res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
 
-                if res.status_code == 200:                
+                if res.status_code == 200:            
                     res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
                     up_file = Document(
                     name = data[i]['nombre'],
@@ -658,30 +760,52 @@ class Firma_Electronica(Resource):
                     properties={
                         'dc:title': data[i]['nombre'],
                     })
+                    
                     file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
                     # Create a batch
                     batch = nuxeo.uploads.batch()
                     blob = base64.b64decode(data[i]['file'])
                     with open(os.path.expanduser('./documents/documentToSign.pdf'), 'wb') as fout:
                         fout.write(blob)
-                      
-                    firma_electronica = firmar(str(data[i]['file']))
 
+                    all_metadata = str({** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
+
+                    DicPostDoc = {
+                        'Metadatos': all_metadata, 
+                        'Nombre': data[i]['nombre'],
+                        "Descripcion": data[i]['descripcion'],
+                        'TipoDocumento':  res_json,
+                        'Activo': True
+                    }
+
+                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+                    responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"')) 
+
+                    firma_electronica = firmar(str(data[i]['file']))
+                
                     datos = {
                         "firma": firma_electronica["llaves"]["firma"],
                         "firmantes": data[i]["firmantes"],
                         "representantes": data[i]["representantes"],
-                        "tipo_documento": res_json["Nombre"]
-                    }
-
+                        "tipo_documento": res_json["Nombre"],
+                        "idDoc": responsePostDoc["Id"]
+                    }                    
 
                     electronicSign = ElectronicSign()
-                    electronicSign.estamparFirmaElectronica(datos)
+                    firmaEncriptada = {
+                        "firmaEncriptada": electronicSign.estamparFirmaElectronica(datos)
+                    }
+                        
+                    jsonStringFirmantes = {
+                        "firmantes": json.dumps(data[i]["firmantes"]),
+                        "representantes": json.dumps(data[i]["representantes"])     
+                    }
 
-                    all_metadata = str({** firma_electronica, ** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
+                    all_metadata = str({** firma_electronica, ** data[i]['metadatos'], ** firmaEncriptada,  ** jsonStringFirmantes}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"').replace("[", "").replace("]", "").replace('"{', '{').replace('}"', '}').replace(": ", ":").replace(", ", ",").replace("[", "").replace("]", "").replace("},{", ",")
 
                     DicPostDoc = {
                         'Metadatos': all_metadata,
+                        "enlace": str(file.uid),
                         "firmantes": data[i]["firmantes"], 
                         "representantes": data[i]["representantes"], 
                         'Nombre': data[i]['nombre'],
@@ -695,16 +819,18 @@ class Firma_Electronica(Resource):
                         #uploaded = batch.upload(BufferBlob(blob), chunked=True)
                     except UploadError:
                         return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+                    
                     # Attach it to the file
                     operation = nuxeo.operations.new('Blob.AttachOnDocument')
                     #operation.params = {'document': str(res_json['Workspace'])+'/'+data[i]['nombre']}
                     operation.params = {'document': str(file.uid)}
                     operation.input_obj = uploaded
                     operation.execute()      
+                    resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/' + str(responsePostDoc["Id"]), json=DicPostDoc).content
 
-                    resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
                     dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
                     response_array.append(dictFromPost)
+
                 else:
                     return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
             dictFromPost = response_array if len(response_array) > 1 else dictFromPost
@@ -723,6 +849,80 @@ class Firma_Electronica(Resource):
                     return Response(json.dumps(error_dict), status=400, mimetype='application/json')                                
                 elif str(e) == "'metadatos'":                
                     error_dict = {'Status':'the field metadatos is required','Code':'400'}
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+                elif '400' in str(e):
+                    DicStatus = {'Status':'invalid request body', 'Code':'400'}
+                    return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
+                return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
+
+
+#@api.route('/verify')
+@dc.route("/verify")
+class verify(Resource):
+    #@app.route("/veriy", methods=["POST"])
+    @api.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error',
+        400: 'Bad request'
+    }, body=upload_model)
+    @dc.expect(request_parser)
+    @cross_origin(**api_cors_config)
+    def post(self):
+        """
+            permite verificar la firma electronica de un documento
+
+            Parameters
+            ----------
+            request : json
+                Json Body {firma}, firma electronica encriptada con el id
+
+            Returns
+            -------
+            Response
+                Respuesta con cuerpo, status y en formato json
+        """
+
+        response_array = []
+        try:            
+            data = request.get_json()
+            for i in range(len(data)):
+                firma = data[i]["firma"].encode()
+                #firma = b'gAAAAABjjf9PrPDl5n8YnaDqJVaAh2CnLCw_ZSeEJNhXlhIo-zb-9Q0W3zl4idWgXbPImlEmw_5ZTa18v6hCU7YcpIlitaJeLU7pakqch8vOa7fW2GPU2jBVKpHcUtYCCmb6Vgtrjx6tihDuG4NMTLgylrSI7faBhvzneqgSam2c336H8_FL1rXq_IeLcx3faUzRH7sI4l0agjRNLAfzcdPHqLbBmwlWbt8G0J4EcjsfXQHWhl29rWdR8J0SzDvIhYtvbYMIyhV8OJS58gRR4jYBF3h6OmQP9GeGQAmRz8XpO_rQ1EBvm1tKtlDaDIDd3p2b2uKPGDRIXPLre8Y3zW6Lid0S2xuSge3ipXW2AcY-QEaF3ywcimvkuElJ3rbEI0rY45Ak-0hkLKw1MI7anz5qgSlwOlV8HtsNbK7zW8OoREPu2z_Ea3IzU6lC4VJp2p2BifTppwBwFOwT_zqMcXxTf7GapWBoaUfi_NXy9DjJ3GtVE4z9o9qkwUFrzkTh00ZdsXj7OblrmAPqGuwp10QQZcLEtEWVHgxbJwjhWgVq-mcMkyfaCOg='
+                try:
+                    firmaID = ElectronicSign().descrypt(firma).decode().split("/////")
+                    IdDocumento = firmaID[0]
+                    firma = firmaID[1]
+                except Exception as e:
+                    error_dict = {'Status': "incompatible signature", 'code': '400'}
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')
+
+                resDoc = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(IdDocumento))
+            
+                responseGetDoc = json.loads(resDoc.content.decode('utf8').replace("'", '"'))
+
+                if resDoc.status_code == 200:
+                    print("dcocumento obetnido")
+                    if "firma" not in responseGetDoc["Metadatos"]:
+                        error_dict = {'Status': "document not signed", 'code': '404'}
+                        return Response(json.dumps(error_dict), status=404, mimetype='application/json')
+                    elif firma in responseGetDoc["Metadatos"]:
+                        print("firma verificada")
+                        succes_dict = {'Status': responseGetDoc, 'code': '200'}
+                        # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')                                     
+                        response_array.append(responseGetDoc)
+                    else:
+                        error_dict = {'Status': "electronic signatures do not match", 'code': '404'}
+                        return Response(json.dumps(error_dict), status=404, mimetype='application/json')
+                else:
+                    error_dict = {'Status': "document not found", 'code': '404'}
+                    return Response(json.dumps(error_dict), status=404, mimetype='application/json')
+
+            dictFromPost = response_array if len(response_array) > 1 else responseGetDoc
+            return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+        except Exception as e:
+                logging.error("type error: " + str(e))
+                if str(e) == "'firma'":
+                    error_dict = {'Status':'the field firma is required','Code':'400'}                
                     return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
                 elif '400' in str(e):
                     DicStatus = {'Status':'invalid request body', 'Code':'400'}

@@ -130,6 +130,30 @@ paths:
           description: Nuxeo error
       tags:
       - document
+  /document/verify:
+    post:
+      description: "Parameters\n----------\nrequest : json\n    Json Body {firma},\
+        \ firma electronica encriptada con el id\n\nReturns\n-------\nResponse\n \
+        \   Respuesta con cuerpo, status y en formato json"
+      operationId: post_verify
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/upload_resquest'
+          type: array
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '500':
+          description: Nuxeo error
+      summary: permite verificar la firma electronica de un documento
+      tags:
+      - document
   /document/{uid}:
     delete:
       operationId: delete_document_/document/<string:uid>
