@@ -37,6 +37,8 @@ from pdfminer.high_level import extract_pages
 from textwrap import wrap
 from datetime import datetime
 import time
+import pytz
+
 # __________________________
 
 # Nuxeo client
@@ -351,7 +353,7 @@ class ElectronicSign:
         t.setTextOrigin(x, y)
         t.textLine("Fecha y hora:")
         t.setFont('Vera', 8)
-        fechaHoraActual = time.strftime("%x") + " " + time.strftime("%X")
+        fechaHoraActual = datos["fecha"]
         t.setTextOrigin(x+140, y)
         t.textLine(fechaHoraActual)
 
@@ -782,13 +784,17 @@ class Firma_Electronica(Resource):
                     responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"')) 
 
                     firma_electronica = firmar(str(data[i]['file']))
+
+                    colombiaTz = pytz.timezone("America/Bogota") 
+                    fecha = datetime.now(colombiaTz).strftime("%Y/%m/%d, %H:%M:%S GMT-5")
                 
                     datos = {
                         "firma": firma_electronica["llaves"]["firma"],
                         "firmantes": data[i]["firmantes"],
                         "representantes": data[i]["representantes"],
                         "tipo_documento": res_json["Nombre"],
-                        "idDoc": responsePostDoc["Id"]
+                        "idDoc": responsePostDoc["Id"],
+                        "fecha": fecha
                     }                    
 
                     electronicSign = ElectronicSign()
@@ -798,7 +804,8 @@ class Firma_Electronica(Resource):
                         
                     jsonStringFirmantes = {
                         "firmantes": json.dumps(data[i]["firmantes"]),
-                        "representantes": json.dumps(data[i]["representantes"])     
+                        "representantes": json.dumps(data[i]["representantes"]),
+                        "fecha": fecha  
                     }
 
                     all_metadata = str({** firma_electronica, ** data[i]['metadatos'], ** firmaEncriptada,  ** jsonStringFirmantes}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"').replace("[", "").replace("]", "").replace('"{', '{').replace('}"', '}').replace(": ", ":").replace(", ", ",").replace("[", "").replace("]", "").replace("},{", ",")
