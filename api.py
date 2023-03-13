@@ -81,12 +81,12 @@ def set_metadata(uid, metadata):
 ##pprint.pprint(nuxeo.documents.get_children(path='/default-domain/workspaces/oas/oas_app/Cumplidos'))
 
 app = Flask(__name__)
-api_bp = Blueprint("api", __name__, url_prefix="/v1")
+api_bp = Blueprint("api", __name__) #, url_prefix="/v1")
 CORS(api_bp)
 #api = Api(app,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc=False,) #produccion
-api = Api(api_bp,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc="/swagger")
+api = Api(api_bp,version='1.0', title='gestor_documental_mid', description='Api mid para la autenticacion de documentos en Nuxeo', doc="/v1/swagger")
 nx = api.namespace("/", description="Nuxeo service Healthcheck")
-dc = api.namespace("document", description="Nuxeo document operations")
+dc = api.namespace("v1/document", description="Nuxeo document operations")
 request_parser = reqparse.RequestParser(bundle_errors=True)
 request_parser.add_argument('list', location='json', type=list, required=True)
 query_parser = reqparse.RequestParser()
@@ -178,7 +178,7 @@ class ElectronicSign:
                 y = yText[i]
                 break
 
-        return y-20
+        return int(y-20)
 
     def descrypt(self, codigo):
         """
@@ -256,7 +256,7 @@ class ElectronicSign:
 
 
         if(yPosition - self.YFOOTER < signPageSize):
-            y = PdfFileReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER 
+            y = int(PdfFileReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER)
 
 
         c = canvas.Canvas('documents/signature.pdf')
@@ -339,7 +339,7 @@ class ElectronicSign:
         t.setFont('VeraBd', 8)
         y = y - 10
         t.setTextOrigin(x, y)
-        t.textLine("Firma elecronica:")
+        t.textLine("Firma electrónica:")
         t.setFont('Vera', 8)
         t.setTextOrigin(x+140, y)
         t.textLines(wraped_firma)
@@ -453,7 +453,7 @@ class ElectronicSign:
 
 
 #@api.route('/')
-@nx.route("/")
+@nx.route("/v1/")
 class Healthcheck(Resource):
     @api.doc(responses={
         200: 'Success',
