@@ -374,7 +374,7 @@ class ElectronicSign:
                 pdf abierto en buffer como lectura
         """
 
-        signPdf = PdfFileReader(open("signature.pdf", "rb"))
+        signPdf = PdfFileReader(open("documents/signature.pdf", "rb"))
         documentPdf = PdfFileReader(pdfIn)
         
         # Get our files ready
