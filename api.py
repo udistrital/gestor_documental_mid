@@ -37,6 +37,9 @@ from pdfminer.high_level import extract_pages
 from textwrap import wrap
 from datetime import datetime
 import time
+
+os.environ['TZ'] = 'America/Bogota'
+time.tzset()
 # __________________________
 
 # Nuxeo client
