@@ -60,19 +60,54 @@ info:
   title: gestor_documental_mid
   version: '1.0'
 paths:
-  /:
+  /document/:
     get:
-      operationId: get_healthcheck
+      description: "Parameters\n----------\nRequest : ?query=params&limit=values&ofset=values\n\
+        \    query: usa la misma métodologia de consulta que en apis beego, e.j: ?query=Nombre:doc...\n\
+        \            - para lista de documentos use parametro__in:valor1|valor2|...|valorn\
+        \ e.j: Id__in:2|3|4\n            - puede anida querys separandolos por ';'\
+        \ si requiere varias consultas con distintos parametros, e.j: Id:2;Nombre:contrato\n\
+        \    limit & offset: son opcionales, limit defecto a 10 y offset a 0\n   \
+        \ - si anida querys, y usa offset o limit debe haber un valor para cada query\
+        \ separados por ';' o ','\n    - e.j: ?query=Id:2;Nombre:contrato&limit=1;10&offset=0;5\n\
+        \    Nota: procure evitar uso de 0 o -1 para limit, si no conoce la cantidad\
+        \ de documentos.\n\nReturns\n-------\nResponse : json\n    Respuesta con Status,\
+        \ Code, Data y Errors en formato json"
+      operationId: get_document_get_all_/document/
       responses:
         '200':
           description: Success
+        '206':
+          description: Partial Content
+        '400':
+          description: Bad request
+        '404':
+          description: Not found
         '500':
           description: Nuxeo error
+      summary: Permite consultar listado de documentos, usando como contexto de busqueda
+        la tabla documento de documentos_crud
       tags:
-      - /
+      - document
+    parameters:
+    - description: Query similar to documentos_crud
+      in: query
+      name: query
+      type: string
+    - description: limit similar a documentos_crud
+      in: query
+      name: limit
+      type: string
+    - description: ofset similar a documentos_crud
+      in: query
+      name: ofset
+      type: string
   /document/firma_electronica:
     post:
-      operationId: post_firma__electronica
+      description: "Parameters\n----------\nrequest : json\n    Json Body {Document},\
+        \ Documento que será subido a nuxeo y firmantes\n\nReturns\n-------\nResponse\n\
+        \    Respuesta con cuerpo, status y en formato json"
+      operationId: post_document_post_firma_electronica
       parameters:
       - in: body
         name: payload
@@ -88,11 +123,15 @@ paths:
           description: Bad request
         '500':
           description: Nuxeo error
+      summary: Permite subir documento pdf y ser firmado electrónicamente
       tags:
       - document
   /document/store_document:
     post:
-      operationId: post_store__document
+      description: "Parameters\n----------\nrequest : json\n    Json Body {Document},\
+        \ Documento que será subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta\
+        \ con cuerpo, status y en formato json"
+      operationId: post_document_post_store_document
       parameters:
       - in: body
         name: payload
@@ -108,11 +147,15 @@ paths:
           description: Bad request
         '500':
           description: Nuxeo error
+      summary: Permite subir documento
       tags:
       - document
   /document/upload:
     post:
-      operationId: post_upload
+      description: "Parameters\n----------\nrequest : json\n    Json Body {Document},\
+        \ Documento que será subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta\
+        \ con cuerpo, status y en formato json"
+      operationId: post_document_post
       parameters:
       - in: body
         name: payload
@@ -128,6 +171,7 @@ paths:
           description: Bad request
         '500':
           description: Nuxeo error
+      summary: Permite subir documento
       tags:
       - document
   /document/uploadAnyFormat:
@@ -135,7 +179,7 @@ paths:
       description: "Parameters\n----------\nrequest : json\n    Json Body {Document},\
         \ Documento que será subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta\
         \ con cuerpo, status y en formato json"
-      operationId: post_upload
+      operationId: post_document_post_any_format
       parameters:
       - in: body
         name: payload
@@ -160,7 +204,7 @@ paths:
       description: "Parameters\n----------\nrequest : json\n    Json Body {firma},\
         \ firma electronica encriptada con el id\n\nReturns\n-------\nResponse\n \
         \   Respuesta con cuerpo, status y en formato json"
-      operationId: post_verify
+      operationId: post_document_post_verify
       parameters:
       - in: body
         name: payload
@@ -181,7 +225,9 @@ paths:
       - document
   /document/{uid}:
     delete:
-      operationId: delete_document_/document/<string:uid>
+      description: "Parameters\n----------\nrequest : uid, versionar\n\nReturns\n\
+        -------\nResponse\n    Respuesta con cuerpo, status y en formato json"
+      operationId: delete_document_get_one__delete_one_/document/<string:uid>
       parameters:
       - default: false
         description: Conservar documento en Nuxeo?
@@ -197,10 +243,13 @@ paths:
           description: Not found
         '500':
           description: Nuxeo error
+      summary: Permite borrar documento por uid
       tags:
       - document
     get:
-      operationId: get_document_/document/<string:uid>
+      description: "Parameters\n----------\nrequest : uid\n\nReturns\n-------\nResponse\n\
+        \    Respuesta con cuerpo, status y en formato json"
+      operationId: get_document_get_one__delete_one_/document/<string:uid>
       responses:
         '200':
           description: Success
@@ -210,6 +259,7 @@ paths:
           description: Not found
         '500':
           description: Nuxeo error
+      summary: Permite consultar documento por uid
       tags:
       - document
     parameters:
@@ -226,7 +276,10 @@ paths:
       required: true
       type: string
     post:
-      operationId: post_metadata_/document/<string:uid>/metadata
+      description: "Parameters\n----------\nrequest : uid, json\n    uid del documento\n\
+        \    Json Body {Metadata}, metadata\n\nReturns\n-------\nResponse\n    Respuesta\
+        \ con cuerpo, status y en formato json"
+      operationId: post_document_post_metadata_/document/<string:uid>/metadata
       parameters:
       - in: body
         name: payload
@@ -242,6 +295,7 @@ paths:
           description: Not found
         '500':
           description: Nuxeo error
+      summary: Permite cargar metadata relacionada a documento
       tags:
       - document
 produces:
@@ -253,7 +307,5 @@ responses:
     description: When a mask can't be parsed
 swagger: '2.0'
 tags:
-- description: Nuxeo service Healthcheck
-  name: /
 - description: Nuxeo document operations
   name: document

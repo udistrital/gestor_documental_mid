@@ -1,0 +1,439 @@
+{
+    "swagger": "2.0",
+    "basePath": "/v1",
+    "paths": {
+        "/document/": {
+            "parameters": [
+                {
+                    "description": "Query similar to documentos_crud",
+                    "name": "query",
+                    "type": "string",
+                    "in": "query"
+                },
+                {
+                    "description": "limit similar a documentos_crud",
+                    "name": "limit",
+                    "type": "string",
+                    "in": "query"
+                },
+                {
+                    "description": "ofset similar a documentos_crud",
+                    "name": "ofset",
+                    "type": "string",
+                    "in": "query"
+                }
+            ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "206": {
+                        "description": "Partial Content"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite consultar listado de documentos, usando como contexto de busqueda la tabla documento de documentos_crud",
+                "description": "Parameters\n----------\nRequest : ?query=params&limit=values&ofset=values\n    query: usa la misma m\u00e9todologia de consulta que en apis beego, e.j: ?query=Nombre:doc...\n            - para lista de documentos use parametro__in:valor1|valor2|...|valorn e.j: Id__in:2|3|4\n            - puede anida querys separandolos por ';' si requiere varias consultas con distintos parametros, e.j: Id:2;Nombre:contrato\n    limit & offset: son opcionales, limit defecto a 10 y offset a 0\n    - si anida querys, y usa offset o limit debe haber un valor para cada query separados por ';' o ','\n    - e.j: ?query=Id:2;Nombre:contrato&limit=1;10&offset=0;5\n    Nota: procure evitar uso de 0 o -1 para limit, si no conoce la cantidad de documentos.\n\nReturns\n-------\nResponse : json\n    Respuesta con Status, Code, Data y Errors en formato json",
+                "operationId": "get_document_get_all_/document/",
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/firma_electronica": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite subir documento pdf y ser firmado electr\u00f3nicamente",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {Document}, Documento que ser\u00e1 subido a nuxeo y firmantes\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post_firma_electronica",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/upload_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/store_document": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite subir documento",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {Document}, Documento que ser\u00e1 subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post_store_document",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/upload_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/upload": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite subir documento",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {Document}, Documento que ser\u00e1 subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/upload_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/uploadAnyFormat": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite subir cualquier tipo de documento, de acuerdo a la extensi\u00f3n de su nombre",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {Document}, Documento que ser\u00e1 subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post_any_format",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/upload_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/verify": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "permite verificar la firma electronica de un documento",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {firma}, firma electronica encriptada con el id\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post_verify",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/upload_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/{uid}": {
+            "parameters": [
+                {
+                    "description": "UID del documento generado en Nuxeo",
+                    "name": "uid",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ],
+            "delete": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite borrar documento por uid",
+                "description": "Parameters\n----------\nrequest : uid, versionar\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "delete_document_get_one__delete_one_/document/<string:uid>",
+                "parameters": [
+                    {
+                        "name": "versionar",
+                        "in": "query",
+                        "type": "boolean",
+                        "description": "Conservar documento en Nuxeo?",
+                        "default": false
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            },
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite consultar documento por uid",
+                "description": "Parameters\n----------\nrequest : uid\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "get_document_get_one__delete_one_/document/<string:uid>",
+                "tags": [
+                    "document"
+                ]
+            }
+        },
+        "/document/{uid}/metadata": {
+            "parameters": [
+                {
+                    "description": "UID del documento generado en Nuxeo",
+                    "name": "uid",
+                    "in": "path",
+                    "required": true,
+                    "type": "string"
+                }
+            ],
+            "post": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite cargar metadata relacionada a documento",
+                "description": "Parameters\n----------\nrequest : uid, json\n    uid del documento\n    Json Body {Metadata}, metadata\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "post_document_post_metadata_/document/<string:uid>/metadata",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/Nuxeo_dublin_core_metadata"
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        }
+    },
+    "info": {
+        "title": "gestor_documental_mid",
+        "version": "1.0",
+        "description": "Api mid para la autenticacion de documentos en Nuxeo"
+    },
+    "produces": [
+        "application/json"
+    ],
+    "consumes": [
+        "application/json"
+    ],
+    "tags": [
+        {
+            "name": "document",
+            "description": "Nuxeo document operations"
+        }
+    ],
+    "definitions": {
+        "upload_resquest": {
+            "properties": {
+                "IdTipoDocumento": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "metadatos": {
+                    "$ref": "#/definitions/documentos_crud_metadata"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "file": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "documentos_crud_metadata": {
+            "properties": {
+                "dato_a": {
+                    "type": "string"
+                },
+                "dato_b": {
+                    "type": "string"
+                },
+                "dato_n": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "Nuxeo_dublin_core_metadata": {
+            "properties": {
+                "properties": {
+                    "$ref": "#/definitions/Metadata_properties"
+                }
+            },
+            "type": "object"
+        },
+        "Metadata_properties": {
+            "properties": {
+                "dc:description": {
+                    "type": "string"
+                },
+                "dc:source": {
+                    "type": "string"
+                },
+                "dc:publisher": {
+                    "type": "string"
+                },
+                "dc:rights": {
+                    "type": "string"
+                },
+                "dc:title": {
+                    "type": "string"
+                },
+                "dc:language": {
+                    "type": "string"
+                },
+                "nxtag:tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/nuxeo_tags"
+                    }
+                }
+            },
+            "type": "object"
+        },
+        "nuxeo_tags": {
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        }
+    },
+    "responses": {
+        "ParseError": {
+            "description": "When a mask can't be parsed"
+        },
+        "MaskError": {
+            "description": "When any error occurs on mask"
+        }
+    }
+}
