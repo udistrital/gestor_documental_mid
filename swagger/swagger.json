@@ -17,8 +17,8 @@
                     "in": "query"
                 },
                 {
-                    "description": "ofset similar a documentos_crud",
-                    "name": "ofset",
+                    "description": "offset similar a documentos_crud",
+                    "name": "offset",
                     "type": "string",
                     "in": "query"
                 }
@@ -42,7 +42,7 @@
                     }
                 },
                 "summary": "Permite consultar listado de documentos, usando como contexto de busqueda la tabla documento de documentos_crud",
-                "description": "Parameters\n----------\nRequest : ?query=params&limit=values&ofset=values\n    query: usa la misma m\u00e9todologia de consulta que en apis beego, e.j: ?query=Nombre:doc...\n            - para lista de documentos use parametro__in:valor1|valor2|...|valorn e.j: Id__in:2|3|4\n            - puede anida querys separandolos por ';' si requiere varias consultas con distintos parametros, e.j: Id:2;Nombre:contrato\n    limit & offset: son opcionales, limit defecto a 10 y offset a 0\n    - si anida querys, y usa offset o limit debe haber un valor para cada query separados por ';' o ','\n    - e.j: ?query=Id:2;Nombre:contrato&limit=1;10&offset=0;5\n    Nota: procure evitar uso de 0 o -1 para limit, si no conoce la cantidad de documentos.\n\nReturns\n-------\nResponse : json\n    Respuesta con Status, Code, Data y Errors en formato json",
+                "description": "Parameters\n----------\nRequest : ?query=params&limit=values&offset=values\n    query: usa la misma m\u00e9todologia de consulta que en apis beego, e.j: ?query=Nombre:doc...\n            - para lista de documentos use parametro__in:valor1|valor2|...|valorn e.j: Id__in:2|3|4\n            - puede anida querys separandolos por ';' si requiere varias consultas con distintos parametros, e.j: Id:2;Nombre:contrato\n    limit & offset: son opcionales, limit defecto a 10 y offset a 0\n    - si anida querys, y usa offset o limit debe haber un valor para cada query separados por ';' o ','\n    - e.j: ?query=Id:2;Nombre:contrato&limit=1;10&offset=0;5\n    Nota: procure evitar uso de 0 o -1 para limit, si no conoce la cantidad de documentos.\n\nReturns\n-------\nResponse : json\n    Respuesta con Status, Code, Data y Errors en formato json",
                 "operationId": "get_document_get_all_/document/",
                 "tags": [
                     "document"
