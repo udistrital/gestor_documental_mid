@@ -62,7 +62,7 @@ info:
 paths:
   /document/:
     get:
-      description: "Parameters\n----------\nRequest : ?query=params&limit=values&ofset=values\n\
+      description: "Parameters\n----------\nRequest : ?query=params&limit=values&offset=values\n\
         \    query: usa la misma métodologia de consulta que en apis beego, e.j: ?query=Nombre:doc...\n\
         \            - para lista de documentos use parametro__in:valor1|valor2|...|valorn\
         \ e.j: Id__in:2|3|4\n            - puede anida querys separandolos por ';'\
@@ -98,9 +98,9 @@ paths:
       in: query
       name: limit
       type: string
-    - description: ofset similar a documentos_crud
+    - description: offset similar a documentos_crud
       in: query
-      name: ofset
+      name: offset
       type: string
   /document/firma_electronica:
     post:

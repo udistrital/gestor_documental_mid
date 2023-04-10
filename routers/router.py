@@ -134,7 +134,7 @@ class documentPostAnyFormat(Resource):
         body = request.get_json()
         return document.postAny(body, nuxeo)
 
-@documentNamespaceController.route('/', doc={'params':{'query': 'Query similar to documentos_crud', 'limit': 'limit similar a documentos_crud', 'ofset': 'ofset similar a documentos_crud'}})
+@documentNamespaceController.route('/', doc={'params':{'query': 'Query similar to documentos_crud', 'limit': 'limit similar a documentos_crud', 'offset': 'offset similar a documentos_crud'}})
 class documentGetAll(Resource):
     @documentDoc.doc(responses={
         200: 'Success',
@@ -150,7 +150,7 @@ class documentGetAll(Resource):
 
             Parameters
             ----------
-            Request : ?query=params&limit=values&ofset=values
+            Request : ?query=params&limit=values&offset=values
                 query: usa la misma métodologia de consulta que en apis beego, e.j: ?query=Nombre:doc...
                         - para lista de documentos use parametro__in:valor1|valor2|...|valorn e.j: Id__in:2|3|4
                         - puede anida querys separandolos por ';' si requiere varias consultas con distintos parametros, e.j: Id:2;Nombre:contrato
