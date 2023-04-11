@@ -134,7 +134,7 @@ class documentPostAnyFormat(Resource):
         body = request.get_json()
         return document.postAny(body, nuxeo)
 
-@documentNamespaceController.route('/', doc={'params':{'query': 'Query similar to documentos_crud', 'limit': 'limit similar a documentos_crud', 'offset': 'offset similar a documentos_crud'}})
+@documentNamespaceController.route('/', strict_slashes=False, doc={'params':{'query': 'Query similar to documentos_crud', 'limit': 'limit similar a documentos_crud', 'offset': 'offset similar a documentos_crud'}})
 class documentGetAll(Resource):
     @documentDoc.doc(responses={
         200: 'Success',
