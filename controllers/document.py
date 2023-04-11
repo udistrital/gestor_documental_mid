@@ -325,8 +325,16 @@ def getAll(params, nuxeo: Nuxeo):
         else:
             
             listUUIDS = remove_duplicates(listUUIDS)
+            
+            if len(listUUIDS) > 150: # 150 es aproximandamente el límite de uids que se pueden consultar al mismo tiempo con documents.query()
+                DicStatus = {        # más allá de ese límite genera error de servidor en nuxeo (400 y 414) -> Request-URI Too Long
+                    'Status':'Bad Request, documents list is too long > 150',
+                    'Code':'400',
+                    'Errors': listUUIDS
+                }
+                return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
 
-            query = query = "SELECT * FROM Document WHERE ecm:uuid IN ('{}')".format("', '".join([item["Enlace"] for item in listUUIDS]))
+            query = "SELECT * FROM Document WHERE ecm:uuid IN ('{}')".format("', '".join([item["Enlace"] for item in listUUIDS]))
             doc = nuxeo.documents.query(opts= {'query':query})
             
             for i, f in enumerate(doc['entries']):
