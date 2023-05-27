@@ -111,7 +111,7 @@ class ElectronicSign:
             yPosition : int
                 posición del ultimo elemeento del pdf
             datos : dict
-                 diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma, idDoc}
+                 diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma}
 
             Return
             ----------
@@ -138,9 +138,7 @@ class ElectronicSign:
             signPageSize += text.count("\n")
             wraped_representantes.append(text)
 
-        firmaID = str(datos["idDoc"]) + "/////" + datos["firma"]
-
-        firma = self.hashCode(firmaID).decode()
+        firma = datos["firma"]
 
         wraped_firma = "\n".join(wrap(firma, 60))
   
@@ -160,14 +158,14 @@ class ElectronicSign:
 
         # Draw the image at x, y. I positioned the x,y to be where i like here
         # c.drawImage('test.png', 15, 720)
-        pdfmetrics.registerFont(TTFont('Vera', 'Vera.ttf'))
-        pdfmetrics.registerFont(TTFont('VeraBd', 'VeraBd.ttf'))
+        # pdfmetrics.registerFont(TTFont('Vera', 'Vera.ttf'))
+        # pdfmetrics.registerFont(TTFont('VeraBd', 'VeraBd.ttf'))
 
         c.setFont('VeraBd', 10)
         y = y - 10
         c.drawString(x + 20, y,"Firmado Digitalmente")
         
-        c.setFont('Vera', 8)
+        # c.setFont('Vera', 8)
         t = c.beginText()
         
 
@@ -236,8 +234,6 @@ class ElectronicSign:
         t.setTextOrigin(x, y)
         t.textLine("Firma electrónica:")
         t.setFont('Vera', 8)
-        t.setTextOrigin(x+140, y)
-        t.textLines(wraped_firma)
 
         y = y - 5
 
@@ -326,7 +322,7 @@ class ElectronicSign:
             Parameters
             ----------
             datos : dict
-                diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma, idDoc}
+                diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma}
 
             Returns
             -------
@@ -344,4 +340,23 @@ class ElectronicSign:
 
         return firmaEncriptada
 
+    def firmaCompleta(self, firma, id):
+        """
+        Método que retorna la firma encriptada incluyendo el ID del documento 
+
+        Parameters
+        ----------
+        firma : string
+            Firma encriptada
+        ----------
+        id : int
+            ID del documento en la tabla documento del api documentos_crud
+
+        Returns
+        -------
+        firmaCompleta : String
+            firma con id encriptadas en un solo texto
+        """
+        firmaID = str(id) + "/////" + firma
+        return self.hashCode(firmaID).decode()
     #_________________________________________

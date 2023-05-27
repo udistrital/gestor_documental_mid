@@ -647,30 +647,43 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                     'Activo': True
                 }
 
+                jsonFirmantes = {
+                    "firmantes": data[i]["firmantes"],
+                    "representantes": data[i]["representantes"],
+                }
+
                 resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
                 responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"')) 
 
                 firma_electronica = firmar(str(data[i]['file']))
-            
+
+                electronicSign = ElectronicSign()
+                firma_completa = electronicSign.firmaCompleta(firma_electronica["llaves"]["firma"], responsePostDoc["Id"])
+                objFirmaElectronica = {
+                    "Activo": True,
+                    "CodigoAutenticidad": firma_electronica["codigo_autenticidad"],
+                    "FirmaEncriptada": firma_completa,
+                    "Firmantes": json.dumps(jsonFirmantes),
+                    "Llaves": json.dumps(firma_electronica["llaves"]),
+                }
+
+                reqPostFirma = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica', json=objFirmaElectronica).content
+                responsePostFirma = json.loads(reqPostFirma.decode('utf8').replace("'", '"')) 
+
                 datos = {
-                    "firma": firma_electronica["llaves"]["firma"],
+                    "firma": responsePostFirma["Id"],
                     "firmantes": data[i]["firmantes"],
                     "representantes": data[i]["representantes"],
                     "tipo_documento": res_json["Nombre"],
-                    "idDoc": responsePostDoc["Id"]
-                }                    
-
-                electronicSign = ElectronicSign()
-                firmaEncriptada = {
-                    "firmaEncriptada": electronicSign.estamparFirmaElectronica(datos)
                 }
-                    
+
+                electronicSign.estamparFirmaElectronica(datos)
                 jsonStringFirmantes = {
                     "firmantes": json.dumps(data[i]["firmantes"]),
                     "representantes": json.dumps(data[i]["representantes"])     
                 }
 
-                all_metadata = str({** firma_electronica, ** data[i]['metadatos'], ** firmaEncriptada,  ** jsonStringFirmantes}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"').replace("[", "").replace("]", "").replace('"{', '{').replace('}"', '}').replace(": ", ":").replace(", ", ",").replace("[", "").replace("]", "").replace("},{", ",")
+                all_metadata = str({** firma_electronica, ** data[i]['metadatos'],  ** jsonStringFirmantes}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"').replace("[", "").replace("]", "").replace('"{', '{').replace('}"', '}').replace(": ", ":").replace(", ", ",").replace("[", "").replace("]", "").replace("},{", ",")
 
                 DicPostDoc = {
                     'Metadatos': all_metadata,
