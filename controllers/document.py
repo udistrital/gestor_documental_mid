@@ -697,7 +697,7 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 }
 
                 try:
-                    uploaded = batch.upload(FileBlob('./documents/documentSigned.pdf'), chunked=True)
+                    uploaded = batch.upload(FileBlob('./documents/documentSignedFlattened.pdf'), chunked=True)
                     #uploaded = batch.upload(BufferBlob(blob), chunked=True)
                 except UploadError:
                     return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')

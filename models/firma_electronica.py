@@ -17,6 +17,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from pdfminer.high_level import extract_pages
 from textwrap import wrap
 import time
+from fillpdf import fillpdfs
 
 os.environ['TZ'] = 'America/Bogota'
 time.tzset()
@@ -125,14 +126,20 @@ class ElectronicSign:
 
         wraped_firmantes = []
         for firmante in datos["firmantes"]:
-            text = firmante["cargo"] + ": " + firmante["nombre"] + ". " + firmante["tipoId"] + " " + firmante["identificacion"]
+            cargo = ""
+            if firmante["cargo"] != "":
+                cargo = firmante["cargo"] + ": "
+            text = cargo + firmante["nombre"] + ". " + firmante["tipoId"] + " " + firmante["identificacion"]
             text = "\n".join(wrap(text, 60))
             signPageSize += text.count("\n")
             wraped_firmantes.append(text)
 
         wraped_representantes = []
         for representante in datos["representantes"]:
-            text = representante["cargo"] + ": " + representante["nombre"] + ". " + representante["tipoId"] + " " + representante["identificacion"]
+            cargo = ""
+            if representante["cargo"] != "":
+                cargo = representante["cargo"] + ": "
+            text = cargo + representante["nombre"] + ". " + representante["tipoId"] + " " + representante["identificacion"]
             text = "\n".join(wrap(text, 60))
             text.count("\n")
             signPageSize += text.count("\n")
@@ -167,8 +174,6 @@ class ElectronicSign:
         
         # c.setFont('Vera', 8)
         t = c.beginText()
-        
-
 
         if len(datos["firmantes"]) > 1:
             t.setFont('VeraBd', 8)
@@ -233,7 +238,8 @@ class ElectronicSign:
         y = y - 10
         t.setTextOrigin(x, y)
         t.textLine("Firma electrónica:")
-        t.setFont('Vera', 8)
+        x_pos = x+140
+        y_pos = y
 
         y = y - 5
 
@@ -250,10 +256,18 @@ class ElectronicSign:
         c.showPage()
         c.save()
 
-        if(yPosition - self.YFOOTER > signPageSize):
-            return firma, True
-        else:
-            return firma, False
+        c = canvas.Canvas('documents/firma.pdf')
+        c.setFont('Vera', 8)
+        t = c.beginText()
+        t.setTextOrigin(x_pos, y_pos)
+        t.textLine(firma)
+
+        c.drawText(t)
+        c.showPage()
+        c.save()
+
+        espacio = yPosition - self.YFOOTER > signPageSize
+        return espacio
  
     def estamparUltimaPagina(self, pdfIn):
 
@@ -331,14 +345,17 @@ class ElectronicSign:
         """
         pdfIn = open("documents/documentToSign.pdf","rb")
         yPosition = self.signPosition(pdfIn)
-        firmaEncriptada, suficienteEspacio = self.signature(pdfIn, yPosition, datos)
+        suficienteEspacio = self.signature(pdfIn, yPosition, datos)
 
         if suficienteEspacio:
             self.estamparUltimaPagina(pdfIn)
         else:
             self.estamparNuevaPagina(pdfIn)
 
-        return firmaEncriptada
+        fillpdfs.flatten_pdf('./documents/documentSigned.pdf', './documents/documentSigned.pdf', True)
+        self.estampa_on_flattened()
+
+        return
 
     def firmaCompleta(self, firma, id):
         """
@@ -359,4 +376,31 @@ class ElectronicSign:
         """
         firmaID = str(id) + "/////" + firma
         return self.hashCode(firmaID).decode()
+
+    def estampa_on_flattened(self):
+
+        """
+            Estampa el hash en la firma final
+        """
+
+        pdfIn = open("documents/documentSigned.pdf","rb")
+        signPdf = PdfFileReader(open("documents/firma.pdf", "rb"))
+        documentPdf = PdfFileReader(pdfIn)        
+        output_file = PdfFileWriter()
+
+        page_count = documentPdf.getNumPages()
+        for page_number in range(page_count-1):
+            input_page = documentPdf.getPage(page_number)
+            input_page.scaleBy(0.5)
+            output_file.addPage(input_page)
+
+        input_page = documentPdf.getPage(page_count-1)
+        input_page.scaleBy(0.5)
+        input_page.mergePage(signPdf.getPage(0))
+        output_file.addPage(input_page)
+
+        with open("documents/documentSignedFlattened.pdf", "wb") as outputStream:
+            output_file.write(outputStream)
+
+        return
     #_________________________________________
