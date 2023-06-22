@@ -740,7 +740,7 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
 def postVerify(body):
     """
         Verificar firma electrónica de documentos (pdf) cargados y firmados digitalmente, 
-        
+
         Parameters
         ----------
         body : json
@@ -753,10 +753,14 @@ def postVerify(body):
         json : info documento si existe firma electrónica
     """
     response_array = []
-    try:            
+    try:
         data = body
         for i in range(len(data)):
-            firma = data[i]["firma"].encode()
+
+            reqFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
+            responseGetFirma = json.loads(reqFirma.content.decode('utf8').replace("'", '"'))
+            firma = responseGetFirma["FirmaEncriptada"].encode()
+
             try:
                 firmaID = ElectronicSign().descrypt(firma).decode().split("/////")
                 IdDocumento = firmaID[0]
@@ -766,7 +770,6 @@ def postVerify(body):
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
 
             resDoc = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(IdDocumento))
-        
             responseGetDoc = json.loads(resDoc.content.decode('utf8').replace("'", '"'))
 
             if resDoc.status_code == 200:
@@ -775,7 +778,7 @@ def postVerify(body):
                     return Response(json.dumps(error_dict), status=404, mimetype='application/json')
                 elif firma in responseGetDoc["Metadatos"]:
                     succes_dict = {'Status': responseGetDoc, 'code': '200'}
-                    # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')                                     
+                    # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')
                     response_array.append(responseGetDoc)
                 else:
                     error_dict = {'Status': "electronic signatures do not match", 'code': '404'}
@@ -789,8 +792,8 @@ def postVerify(body):
     except Exception as e:
             logging.error("type error: " + str(e))
             if str(e) == "'firma'":
-                error_dict = {'Status':'the field firma is required','Code':'400'}                
-                return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+                error_dict = {'Status':'the field firma is required','Code':'400'}
+                return Response(json.dumps(error_dict), status=400, mimetype='application/json')
             elif '400' in str(e):
                 DicStatus = {'Status':'invalid request body', 'Code':'400'}
                 return Response(json.dumps(DicStatus), status=400, mimetype='application/json')

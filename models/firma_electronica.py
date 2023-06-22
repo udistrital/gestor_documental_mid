@@ -165,8 +165,8 @@ class ElectronicSign:
 
         # Draw the image at x, y. I positioned the x,y to be where i like here
         # c.drawImage('test.png', 15, 720)
-        # pdfmetrics.registerFont(TTFont('Vera', 'Vera.ttf'))
-        # pdfmetrics.registerFont(TTFont('VeraBd', 'VeraBd.ttf'))
+        pdfmetrics.registerFont(TTFont('Vera', 'Vera.ttf'))
+        pdfmetrics.registerFont(TTFont('VeraBd', 'VeraBd.ttf'))
 
         c.setFont('VeraBd', 10)
         y = y - 10
