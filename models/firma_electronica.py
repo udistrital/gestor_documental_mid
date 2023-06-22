@@ -42,7 +42,7 @@ class ElectronicSign:
             ----------
             pdfIn : _io.BufferedReader
                 pdf abierto en buffer como lectura
-           
+
             Return
             ----------
             list : lista de posiciones en y de cada uno de los elementos de un pdf
@@ -78,7 +78,7 @@ class ElectronicSign:
 
     def descrypt(self, codigo):
         """
-            Desencripta un texto 
+            Desencripta un texto
             Parameters
             ----------
             codigo : bytes
@@ -91,7 +91,7 @@ class ElectronicSign:
 
     def hashCode(self, firma):
         """
-            Desencripta un texto 
+            Desencripta un texto
             Parameters
             ----------
             codigo : String
@@ -101,7 +101,7 @@ class ElectronicSign:
             bytes : codigo en formato bytes encriptado
         """
         return self.fernet.encrypt(firma.encode())
-        
+
     def signature(self, pdfIn, yPosition, datos):
         """
             Crea el estampado de la firma electronica
@@ -148,7 +148,7 @@ class ElectronicSign:
         firma = datos["firma"]
 
         wraped_firma = "\n".join(wrap(firma, 60))
-  
+
         signPageSize += wraped_firma.count("\n")
 
         signPageSize *= 10
@@ -171,7 +171,7 @@ class ElectronicSign:
         c.setFont('VeraBd', 10)
         y = y - 10
         c.drawString(x + 20, y,"Firmado Digitalmente")
-        
+
         # c.setFont('Vera', 8)
         t = c.beginText()
 
@@ -268,7 +268,7 @@ class ElectronicSign:
 
         espacio = yPosition - self.YFOOTER > signPageSize
         return espacio
- 
+
     def estamparUltimaPagina(self, pdfIn):
 
         """
@@ -281,21 +281,20 @@ class ElectronicSign:
 
         signPdf = PdfFileReader(open("documents/signature.pdf", "rb"))
         documentPdf = PdfFileReader(pdfIn)
-        
+
         # Get our files ready
         output_file = PdfFileWriter()
 
         # Number of pages in input document
-        page_count = documentPdf.getNumPages()
+        page_count = len(documentPdf.pages)
 
         for page_number in range(page_count-1):
-            input_page = documentPdf.getPage(page_number)
-            output_file.addPage(input_page)
+            input_page = documentPdf.pages[page_number]
+            output_file.add_page(input_page)
 
-        input_page = documentPdf.getPage(page_count-1)
-        input_page.mergePage(signPdf.getPage(0))
-        output_file.addPage(input_page)
-
+        input_page = documentPdf.pages[page_count-1]
+        input_page.merge_page(signPdf.pages[0])
+        output_file.add_page(input_page)
         with open("documents/documentSigned.pdf", "wb") as outputStream:
             output_file.write(outputStream)
 
@@ -315,15 +314,14 @@ class ElectronicSign:
         output_file = PdfFileWriter()
 
         # Number of pages in input document
-        page_count = documentPdf.getNumPages()
+        page_count = len(documentPdf.pages)
 
         for page_number in range(page_count):
-            input_page = documentPdf.getPage(page_number)
-            output_file.addPage(input_page)
+            input_page = documentPdf.pages[page_number]
+            output_file.add_page(input_page)
 
-        
-        output_file.addBlankPage()
-        output_file.getPage(output_file.getNumPages()-1).mergePage(signPdf.getPage(0))
+        output_file.add_blank_page()
+        output_file.pages[len(output_file.pages)-1].merge_page(signPdf.pages[0])
 
         with open("documents/documentSigned.pdf", "wb") as outputStream:
             output_file.write(outputStream)
@@ -359,7 +357,7 @@ class ElectronicSign:
 
     def firmaCompleta(self, firma, id):
         """
-        Método que retorna la firma encriptada incluyendo el ID del documento 
+        Método que retorna la firma encriptada incluyendo el ID del documento
 
         Parameters
         ----------
@@ -385,19 +383,19 @@ class ElectronicSign:
 
         pdfIn = open("documents/documentSigned.pdf","rb")
         signPdf = PdfFileReader(open("documents/firma.pdf", "rb"))
-        documentPdf = PdfFileReader(pdfIn)        
+        documentPdf = PdfFileReader(pdfIn)
         output_file = PdfFileWriter()
 
-        page_count = documentPdf.getNumPages()
+        page_count = len(documentPdf.pages)
         for page_number in range(page_count-1):
-            input_page = documentPdf.getPage(page_number)
-            input_page.scaleBy(0.5)
-            output_file.addPage(input_page)
+            input_page = documentPdf.pages[page_number]
+            input_page.scale_by(0.5)
+            output_file.add_page(input_page)
 
-        input_page = documentPdf.getPage(page_count-1)
-        input_page.scaleBy(0.5)
-        input_page.mergePage(signPdf.getPage(0))
-        output_file.addPage(input_page)
+        input_page = documentPdf.pages[page_count-1]
+        input_page.scale_by(0.5)
+        input_page.merge_page(signPdf.pages[0])
+        output_file.add_page(input_page)
 
         with open("documents/documentSignedFlattened.pdf", "wb") as outputStream:
             output_file.write(outputStream)
