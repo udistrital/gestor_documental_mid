@@ -12,3 +12,6 @@ pypdf
 pdfminer.six
 reportlab
 fillpdf
+pdf2image
+python-dateutil
+poppler-utils
