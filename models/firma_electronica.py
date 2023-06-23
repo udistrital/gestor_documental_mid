@@ -11,7 +11,7 @@ from pdfminer.pdfinterp import PDFResourceManager
 from pdfminer.pdfinterp import PDFPageInterpreter
 from pdfminer.converter import PDFPageAggregator
 from reportlab.pdfgen import canvas
-from PyPDF2 import PdfFileWriter, PdfFileReader
+from PyPDF2 import PdfWriter, PdfReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from pdfminer.high_level import extract_pages
@@ -156,7 +156,7 @@ class ElectronicSign:
 
 
         if(yPosition - self.YFOOTER < signPageSize):
-            y = int(PdfFileReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER)
+            y = int(PdfReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER)
 
 
         c = canvas.Canvas('documents/signature.pdf')
@@ -172,7 +172,7 @@ class ElectronicSign:
         y = y - 10
         c.drawString(x + 20, y,"Firmado Digitalmente")
 
-        # c.setFont('Vera', 8)
+        c.setFont('Vera', 8)
         t = c.beginText()
 
         if len(datos["firmantes"]) > 1:
@@ -185,7 +185,6 @@ class ElectronicSign:
             y = y - 15
             t.setTextOrigin(x, y)
             t.textLine("Firmante:")
-
 
         count = 1
         t.setFont('Vera', 8)
@@ -279,11 +278,11 @@ class ElectronicSign:
                 pdf abierto en buffer como lectura
         """
 
-        signPdf = PdfFileReader(open("documents/signature.pdf", "rb"))
-        documentPdf = PdfFileReader(pdfIn)
+        signPdf = PdfReader(open("documents/signature.pdf", "rb"))
+        documentPdf = PdfReader(pdfIn)
 
         # Get our files ready
-        output_file = PdfFileWriter()
+        output_file = PdfWriter()
 
         # Number of pages in input document
         page_count = len(documentPdf.pages)
@@ -307,11 +306,11 @@ class ElectronicSign:
             pdfIn : _io.BufferedReader
                 pdf abierto en buffer como lectura
         """
-        signPdf = PdfFileReader(open("documents/signature.pdf", "rb"))
-        documentPdf = PdfFileReader(pdfIn)
+        signPdf = PdfReader(open("documents/signature.pdf", "rb"))
+        documentPdf = PdfReader(pdfIn)
 
         # Get our files ready
-        output_file = PdfFileWriter()
+        output_file = PdfWriter()
 
         # Number of pages in input document
         page_count = len(documentPdf.pages)
@@ -382,9 +381,9 @@ class ElectronicSign:
         """
 
         pdfIn = open("documents/documentSigned.pdf","rb")
-        signPdf = PdfFileReader(open("documents/firma.pdf", "rb"))
-        documentPdf = PdfFileReader(pdfIn)
-        output_file = PdfFileWriter()
+        signPdf = PdfReader(open("documents/firma.pdf", "rb"))
+        documentPdf = PdfReader(pdfIn)
+        output_file = PdfWriter()
 
         page_count = len(documentPdf.pages)
         for page_number in range(page_count-1):
