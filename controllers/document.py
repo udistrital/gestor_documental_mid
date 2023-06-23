@@ -15,10 +15,18 @@ from models.firma_electronica import ElectronicSign
 from models.utils import remove_duplicates
 from nuxeo.client import Nuxeo
 
+def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
+    doc = nuxeo.documents.get(uid = uid)
+    DicRes = doc.properties
+    blob_get = doc.fetch_blob()
+    blob64 = base64.b64encode(blob_get)
+    DicRes['file'] = str(blob64).replace("b'","'").replace("'","")
+    return DicRes
+
 def getOne(uid, nuxeo: Nuxeo):
     """
         Consulta 1 documento a Nuxeo mediante uid
-        
+
         Parameters
         ----------
         uid : string
@@ -30,23 +38,19 @@ def getOne(uid, nuxeo: Nuxeo):
         ----------
         json : documento en base64 y propiedades
     """
-    try:                  
+    try:
         resource = uid
         if resource is None:
             abort(404, description="Not found resource")
 
-        if uid.count('-') != 4 or len(uid) != 36:                
+        if uid.count('-') != 4 or len(uid) != 36:
             abort(400, description="invalid parameter")
 
         res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
         res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
-        if str(res_json) != "[{}]":                 
-            doc = nuxeo.documents.get(uid = uid)
-            DicRes = doc.properties
-            blob_get = doc.fetch_blob()
-            blob64 = base64.b64encode(blob_get)
-            DicRes['file'] = str(blob64).replace("b'","'").replace("'","")       
-            return Response(json.dumps(DicRes), status=200, mimetype='application/json')
+        if str(res_json) != "[{}]":
+            DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
+            return Response(json.dumps(DicDoc), status=200, mimetype='application/json')
         else:
             DicStatus = {
                 'Status':'document not found',
@@ -660,13 +664,14 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
             firma_electronica = firmar(str(data[i]['file']))
 
             electronicSign = ElectronicSign()
-            firma_completa = electronicSign.firmaCompleta(firma_electronica["llaves"]["firma"], responsePostDoc["Id"])
+            # firma_completa = electronicSign.firmaCompleta(firma_electronica["llaves"]["firma"], responsePostDoc["Id"])
             objFirmaElectronica = {
                 "Activo": True,
                 "CodigoAutenticidad": firma_electronica["codigo_autenticidad"],
-                "FirmaEncriptada": firma_completa,
+                "FirmaEncriptada": firma_electronica["llaves"]["firma"],
                 "Firmantes": json.dumps(jsonFirmantes),
                 "Llaves": json.dumps(firma_electronica["llaves"]),
+                "DocumentoId": {"Id": responsePostDoc["Id"]},
             }
 
             reqPostFirma = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica', json=objFirmaElectronica).content
@@ -737,9 +742,9 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
-def postVerify(body):
+def postVerify(body, nuxeo: Nuxeo):
     """
-        Verificar firma electrónica de documentos (pdf) cargados y firmados digitalmente, 
+        Verificar firma electrónica de documentos (pdf) cargados y firmados digitalmente,
 
         Parameters
         ----------
@@ -758,37 +763,27 @@ def postVerify(body):
         for i in range(len(data)):
 
             reqFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
+
+            if reqFirma.status_code != 200:
+                error_dict = {'Status': "document not found", 'code': '404'}
+                return reqFirma.content
+
             responseGetFirma = json.loads(reqFirma.content.decode('utf8').replace("'", '"'))
             firma = responseGetFirma["FirmaEncriptada"].encode()
 
-            try:
-                firmaID = ElectronicSign().descrypt(firma).decode().split("/////")
-                IdDocumento = firmaID[0]
-                firma = firmaID[1]
-            except Exception as e:
-                error_dict = {'Status': "incompatible signature", 'code': '400'}
-                return Response(json.dumps(error_dict), status=400, mimetype='application/json')
-
-            resDoc = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/'+str(IdDocumento))
-            responseGetDoc = json.loads(resDoc.content.decode('utf8').replace("'", '"'))
-
-            if resDoc.status_code == 200:
-                if "firma" not in responseGetDoc["Metadatos"]:
-                    error_dict = {'Status': "document not signed", 'code': '404'}
-                    return Response(json.dumps(error_dict), status=404, mimetype='application/json')
-                elif firma in responseGetDoc["Metadatos"]:
-                    succes_dict = {'Status': responseGetDoc, 'code': '200'}
-                    # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')
-                    response_array.append(responseGetDoc)
-                else:
-                    error_dict = {'Status': "electronic signatures do not match", 'code': '404'}
-                    return Response(json.dumps(error_dict), status=404, mimetype='application/json')
+            if "firma" not in responseGetFirma["DocumentoId"]["Metadatos"]:
+                error_dict = {'Status': "document not signed", 'code': '404'}
+                return Response(json.dumps(error_dict), status=404, mimetype='application/json')
+            elif firma in responseGetFirma["DocumentoId"]["Metadatos"].encode():
+                responseNuxeo = getDocumentoNuxeoFormatted(responseGetFirma["DocumentoId"]["Enlace"], nuxeo)
+                # succes_dict = {'Status': responseNuxeo, 'code': '200'}
+                # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')
+                response_array.append(responseNuxeo)
             else:
-                error_dict = {'Status': "document not found", 'code': '404'}
+                error_dict = {'Status': "electronic signatures do not match", 'code': '404'}
                 return Response(json.dumps(error_dict), status=404, mimetype='application/json')
 
-        dictFromPost = response_array if len(response_array) > 1 else responseGetDoc
-        return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+        return Response(json.dumps({'Status':'200', 'res':response_array}), status=200, mimetype='application/json')
     except Exception as e:
             logging.error("type error: " + str(e))
             if str(e) == "'firma'":

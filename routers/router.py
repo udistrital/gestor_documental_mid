@@ -271,4 +271,4 @@ class documentPostVerify(Resource):
                 Respuesta con cuerpo, status y en formato json
         """
         body = request.get_json()
-        return document.postVerify(body)
+        return document.postVerify(body, nuxeo)
