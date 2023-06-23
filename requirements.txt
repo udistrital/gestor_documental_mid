@@ -8,7 +8,7 @@ flask-cors
 packaging
 werkzeug
 pdfminer
-PyPDF2 < 3.0.0
+pypdf
 pdfminer.six
 reportlab
 fillpdf
