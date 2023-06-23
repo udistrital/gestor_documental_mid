@@ -16,6 +16,8 @@ ADD requirements.txt .
 
 RUN pip install -r requirements.txt
 
+RUN pip install poppler-utils
+
 COPY conf/** /conf/
 
 COPY controllers/** /controllers/
