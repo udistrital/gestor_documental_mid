@@ -762,13 +762,12 @@ def postVerify(body, nuxeo: Nuxeo):
         data = body
         for i in range(len(data)):
 
-            reqFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
+            resFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
 
-            if reqFirma.status_code != 200:
-                error_dict = {'Status': "document not found", 'code': '404'}
-                return reqFirma.content
+            if resFirma.status_code != 200:
+                return Response(resFirma, resFirma.status_code, mimetype='application/json')
 
-            responseGetFirma = json.loads(reqFirma.content.decode('utf8').replace("'", '"'))
+            responseGetFirma = json.loads(resFirma.content.decode('utf8').replace("'", '"'))
             firma = responseGetFirma["FirmaEncriptada"].encode()
 
             if "firma" not in responseGetFirma["DocumentoId"]["Metadatos"]:
