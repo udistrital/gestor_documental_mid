@@ -771,7 +771,7 @@ def postVerify(body, nuxeo: Nuxeo):
             firma = responseGetFirma["FirmaEncriptada"].encode()
 
             if "firma" not in responseGetFirma["DocumentoId"]["Metadatos"]:
-                error_dict = {'Status': "document not signed", 'code': '404'}
+                error_dict = {'Message': "document not signed", 'code': '404'}
                 return Response(json.dumps(error_dict), status=404, mimetype='application/json')
             elif firma in responseGetFirma["DocumentoId"]["Metadatos"].encode():
                 responseNuxeo = getDocumentoNuxeoFormatted(responseGetFirma["DocumentoId"]["Enlace"], nuxeo)
@@ -779,7 +779,7 @@ def postVerify(body, nuxeo: Nuxeo):
                 # return Response(json.dumps(succes_dict), status=200, mimetype='application/json')
                 response_array.append(responseNuxeo)
             else:
-                error_dict = {'Status': "electronic signatures do not match", 'code': '404'}
+                error_dict = {'Message': "electronic signatures do not match", 'code': '404'}
                 return Response(json.dumps(error_dict), status=404, mimetype='application/json')
 
         return Response(json.dumps({'Status':'200', 'res':response_array}), status=200, mimetype='application/json')
