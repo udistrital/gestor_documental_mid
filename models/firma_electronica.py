@@ -156,7 +156,7 @@ class ElectronicSign:
 
 
         if(yPosition - self.YFOOTER < signPageSize):
-            y = int(PdfReader(pdfIn).getPage(0).mediabox[3] - self.YHEEADER)
+            y = int(PdfReader(pdfIn).pages[0].mediabox[3] - self.YHEEADER)
 
 
         c = canvas.Canvas('documents/signature.pdf')
