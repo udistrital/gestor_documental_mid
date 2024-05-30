@@ -621,10 +621,9 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                     'Code':'400'
                 }
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
-
             IdDocumento = data[i]['IdTipoDocumento']
             res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
-
+            
             if res.status_code != 200:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
 
@@ -642,7 +641,6 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
             blob = base64.b64decode(data[i]['file'])
             with open(os.path.expanduser('./documents/documentToSign.pdf'), 'wb') as fout:
                 fout.write(blob)
-
             all_metadata = str({** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
 
             DicPostDoc = {
@@ -657,10 +655,8 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 "firmantes": data[i]["firmantes"],
                 "representantes": data[i]["representantes"],
             }
-
             resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
             responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"'))
-
             firma_electronica = firmar(str(data[i]['file']))
 
             electronicSign = ElectronicSign()
@@ -691,7 +687,6 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
             }
 
             all_metadata = str({** firma_electronica, ** data[i]['metadatos'],  ** jsonStringFirmantes}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"').replace("[", "").replace("]", "").replace('"{', '{').replace('}"', '}').replace(": ", ":").replace(", ", ",").replace("[", "").replace("]", "").replace("},{", ",")
-
             DicPostDoc = {
                 'Metadatos': all_metadata,
                 "enlace": str(file.uid),
@@ -702,7 +697,6 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 'TipoDocumento' :  res_json,
                 'Activo': True
             }
-
             try:
                 uploaded = batch.upload(FileBlob('./documents/documentSignedFlattened.pdf'), chunked=True)
                 #uploaded = batch.upload(BufferBlob(blob), chunked=True)
@@ -792,3 +786,90 @@ def postVerify(body, nuxeo: Nuxeo):
                 DicStatus = {'Status':'invalid request body', 'Code':'400'}
                 return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
             return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
+
+def putUpdate(data, nuxeo: Nuxeo):
+    '''
+        Actualiza registro de documento en Documentos CRUD subido desde API firma electrónica
+
+    '''
+
+    print ("BIENVENIDOS AL HIMALAYA")
+    response_array = []
+    try:
+        for i in range(len(data)):
+            if len(str(data[i]['file'])) < 1000:
+                error_dict = {
+                    'Status':'invalid pdf file',
+                    'Code':'400'
+                }                
+                return Response(json.dumps(error_dict), status=400, mimetype='application/json')
+
+            IdTipoDocumento = data[i]['IdTipoDocumento']
+            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdTipoDocumento))
+
+            if res.status_code == 200:                
+                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                up_file = Document(
+                name = data[i]['nombre'],
+                type = res_json['TipoDocumentoNuxeo'],
+                properties={
+                    'dc:title': data[i]['nombre'],
+                })
+
+                file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
+                # Create a batch
+                batch = nuxeo.uploads.batch()
+                blob = base64.b64decode(data[i]['file'])
+                fileName= data[i]['nombre'].split(".")
+                if len(fileName)==1:
+                    filepath = data[i]['nombre'] + res_json['Extension']
+                else:
+                    filepath = data[i]['nombre']                                
+                with open(os.path.expanduser('./documents/'+filepath), 'wb') as fout:
+                    fout.write(blob)
+                try:
+                    uploaded = batch.upload(FileBlob('./documents/'+filepath), chunked=True)
+                except UploadError:
+                    return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
+                # Attach it to the file
+                operation = nuxeo.operations.new('Blob.AttachOnDocument')
+                operation.params = {'document': str(file.uid)}
+                operation.input_obj = uploaded
+                operation.execute()        
+                
+                DicPostDoc = {
+                    'Enlace' : str(file.uid),
+                    'Metadatos' : data[i]['metadatos'],
+                    'Nombre' : data[i]['nombre'],
+                    "Descripcion": data[i]['descripcion'],
+                    'TipoDocumento' :  res_json,
+                    'Activo': True
+                }
+
+                resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento/'+ str(data[i]['idDocumento']), json=DicPostDoc).content
+                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
+                response_array.append(dictFromPost)
+                
+            else:
+                return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
+        dictFromPost = response_array if len(response_array) > 1 else dictFromPost
+        return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
+
+    except Exception as e:
+        logging.error("type error: " + str(e))
+        if str(e) == "'IdTipoDocumento'":
+            error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
+            return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+        elif str(e) == "'nombre'":
+            error_dict = {'Status':'the field nombre is required','Code':'400'}
+            return Response(json.dumps(error_dict), status=400, mimetype='application/json')
+        elif str(e) == "'file'":
+            error_dict = {'Status':'the field file is required','Code':'400'}
+            return Response(json.dumps(error_dict), status=400, mimetype='application/json')                                
+        elif str(e) == "'metadatos'":                
+            error_dict = {'Status':'the field metadatos is required','Code':'400'}
+            return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+        elif '400' in str(e):
+            DicStatus = {'Status':'invalid request body', 'Code':'400'}
+            return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
+        return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')

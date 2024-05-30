@@ -29,11 +29,11 @@ def define_parameters(api):
         'dc:language': fields.String,
         'nxtag:tags': fields.Nested(nuxeo_tags,as_list=True)
     })
-
+    
     metadata_dublin_core_model = api.model('Nuxeo_dublin_core_metadata', {
         'properties': fields.Nested(properties)
     })
-
+    
     upload_model = [api.model('upload_resquest', {
         'IdTipoDocumento': fields.Integer,
         'nombre': fields.String,
@@ -41,6 +41,15 @@ def define_parameters(api):
         'metadatos': fields.Nested(metadata_doc_crud_model),
         'descripcion': fields.String,
         'file': fields.String,
+    })]
+
+    put_update_model = [api.model('put_update_resquest', {
+        'IdTipoDocumento': fields.Integer,
+        'nombre': fields.String,
+        'metadatos': fields.String,
+        'descripcion': fields.String,
+        'file': fields.String,
+        'idDocumento': fields.Integer,
     })]
 
     return {k: v for k, v in vars().items() if not k.startswith('__')}

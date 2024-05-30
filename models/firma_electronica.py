@@ -112,7 +112,7 @@ class ElectronicSign:
             yPosition : int
                 posición del ultimo elemeento del pdf
             datos : dict
-                 diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma}
+                diccionario con datos a estampar {tipo_documento, firmantes, representantes, firma}
 
             Return
             ----------
