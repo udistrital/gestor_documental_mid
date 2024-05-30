@@ -107,3 +107,6 @@ venv.bak/
 #documentpdf
 documents/
 
+swagger/**
+!swagger/swagger.json
+!swagger/swagger.yml
