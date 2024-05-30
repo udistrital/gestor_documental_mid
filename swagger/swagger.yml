@@ -42,6 +42,21 @@ definitions:
       username:
         type: string
     type: object
+  put_update_resquest:
+    properties:
+      IdTipoDocumento:
+        type: integer
+      descripcion:
+        type: string
+      file:
+        type: string
+      idDocumento:
+        type: integer
+      metadatos:
+        type: string
+      nombre:
+        type: string
+    type: object
   upload_resquest:
     properties:
       IdTipoDocumento:
@@ -124,6 +139,30 @@ paths:
         '500':
           description: Nuxeo error
       summary: Permite subir documento pdf y ser firmado electrónicamente
+      tags:
+      - document
+  /document/putUpdate:
+    put:
+      description: "Parameters\n----------\nrequest : json\n    Json Body {Document},\
+        \ Documento que será subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta\
+        \ con cuerpo, status y en formato json"
+      operationId: put_document_put_update
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/put_update_resquest'
+          type: array
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad request
+        '500':
+          description: Nuxeo error
+      summary: Permite subir documento pdf y modificar registro en BD
       tags:
       - document
   /document/store_document:
