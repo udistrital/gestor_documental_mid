@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.8
 
 RUN pip install awscli
 
@@ -18,7 +18,7 @@ RUN pip install -r requirements.txt
 
 RUN apt-get update
 
-RUN pip install poppler-utils
+RUN apt-get install poppler-utils -y
 
 COPY conf/** /conf/
 
