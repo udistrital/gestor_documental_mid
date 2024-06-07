@@ -792,8 +792,6 @@ def putUpdate(data, nuxeo: Nuxeo):
         Actualiza registro de documento en Documentos CRUD subido desde API firma electrónica
 
     '''
-
-    print ("BIENVENIDOS AL HIMALAYA")
     response_array = []
     try:
         for i in range(len(data)):
@@ -803,10 +801,8 @@ def putUpdate(data, nuxeo: Nuxeo):
                     'Code':'400'
                 }                
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
-
             IdTipoDocumento = data[i]['IdTipoDocumento']
             res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdTipoDocumento))
-
             if res.status_code == 200:                
                 res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
                 up_file = Document(
@@ -815,7 +811,6 @@ def putUpdate(data, nuxeo: Nuxeo):
                 properties={
                     'dc:title': data[i]['nombre'],
                 })
-
                 file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
                 # Create a batch
                 batch = nuxeo.uploads.batch()
