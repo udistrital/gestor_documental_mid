@@ -4,6 +4,7 @@ import json
 import io
 import logging
 from aws_xray_sdk.core import xray_recorder
+from flask import request
 
 # Importa la configuración de X-Ray
 import xray
@@ -27,22 +28,20 @@ def send_json(url, method, target, datajson=None):
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
-    segment = xray_recorder.begin_segment(name="send_json")
+    segment = xray_recorder.begin_segment(name='get_json')
 
     try:
-        response = requests.request(method, url, json=datajson, headers=headers)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response.json() if target is None else json.loads(response.text, object_hook=target)
+        return response
     except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
+        segment.add_exception(e, traceback.format_exc())
         raise
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
+        segment.add_exception(e, traceback.format_exc())
         raise
+    finally:
+        xray_recorder.end_segment()  # Finalizar el segmento
 
 def send_json_escape_unicode(url, method, target, datajson=None):
     headers = {
@@ -69,27 +68,28 @@ def send_json_escape_unicode(url, method, target, datajson=None):
         raise
 
 def get_json(url, target):
+    print("Target ", target)
     headers = {
         "Authorization": get_header(),
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "Content-Type": "application/json"
     }
-    print("UARA ", url)
-    # Crear un subsegmento dentro del contexto del segmento principal
-    with xray_recorder.in_subsegment('get_json') as segment:
-        try:
-            print(url)
-            response = requests.get(url, headers=headers)
-            print(response)
-            response.raise_for_status()
-            return response
-        except requests.RequestException as e:
-            logger.error(f"Error reading response: {e}")
-            segment.add_exception(e, traceback.format_exc())
-            raise
-        except Exception as e:
-            logger.error(f"Error processing request: {e}")
-            segment.add_exception(e, traceback.format_exc())
-            raise
+
+    curr_url = request.host
+    segment = xray_recorder.begin_segment(name=curr_url)
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response
+    except requests.RequestException as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    except Exception as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    finally:
+        xray_recorder.end_segment()
 
 def get_json_wso2(url, target):
     headers = {
