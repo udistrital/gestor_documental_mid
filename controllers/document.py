@@ -14,10 +14,12 @@ from models.firma import firmar
 from models.firma_electronica import ElectronicSign
 from models.utils import remove_duplicates
 from nuxeo.client import Nuxeo
-
 from xray.request_tools import get_json
 
 def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
+    print("ENTRa")
+    print(uid)
+    print(nuxeo)
     doc = nuxeo.documents.get(uid = uid)
     DicRes = doc.properties
     blob_get = doc.fetch_blob()
@@ -49,11 +51,15 @@ def getOne(uid, nuxeo: Nuxeo):
             abort(400, description="invalid parameter")
 
         #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
-        url = str(os.environ['DOCUMENTOS_CRUD_URL']) + '/documento?query=Activo:true,Enlace:' + uid
+        url = str(os.environ['DOCUMENTOS_CRUD_URL']) + 'documento?query=Activo:true,Enlace:' + uid
+        print(os.environ['DOCUMENTOS_CRUD_URL'])
+        print("URL ")
+        print(url)
         res_doc_crud = get_json(url, target=None)
         res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
         if str(res_json) != "[{}]":
             DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
+            print("DICDOC ", DicDoc)
             return Response(json.dumps(DicDoc), status=200, mimetype='application/json')
         else:
             DicStatus = {
