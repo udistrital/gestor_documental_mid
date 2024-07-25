@@ -15,6 +15,8 @@ from models.firma_electronica import ElectronicSign
 from models.utils import remove_duplicates
 from nuxeo.client import Nuxeo
 
+from xray.request_tools import get_json
+
 def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
     doc = nuxeo.documents.get(uid = uid)
     DicRes = doc.properties
@@ -46,7 +48,9 @@ def getOne(uid, nuxeo: Nuxeo):
         if uid.count('-') != 4 or len(uid) != 36:
             abort(400, description="invalid parameter")
 
-        res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
+        #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
+        url = str(os.environ['DOCUMENTOS_CRUD_URL']) + '/documento?query=Activo:true,Enlace:' + uid
+        res_doc_crud = get_json(url, target=None)
         res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
         if str(res_json) != "[{}]":
             DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
@@ -91,7 +95,9 @@ def post(body, nuxeo: Nuxeo):
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
 
             IdDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            url = str(os.environ['DOCUMENTOS_CRUD_URL']) + '/tipo_documento/' + str(IdDocumento)
+            res = get_json(url, target=None)
 
             if res.status_code == 200:                
                 res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
@@ -129,6 +135,7 @@ def post(body, nuxeo: Nuxeo):
                     'Activo': True
                 }
                 resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+                #resPost = post_json(str(os.environ['DOCUMENTOS_CRUD_URL']) + '/documento', DicPostDoc)
                 dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
                 response_array.append(dictFromPost)
             else:
