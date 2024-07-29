@@ -27,7 +27,7 @@ def init_xray(app):
     )
 
    # XRayMiddleware(app, xray_recorder)
-    patch_all()
+    #patch_all()
 
     s3_client = boto3.client('s3', region_name='us-east-1')
     ecs_client = boto3.client('ecs', region_name='us-east-1')

@@ -22,6 +22,77 @@ def set_header(header):
 def get_header():
     return global_header
 
+def get_json(url, target):
+    headers = {
+        "Authorization": get_header(),
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    curr_url = request.host
+    segment = xray_recorder.begin_segment(name=curr_url)
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response
+    except requests.RequestException as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    except Exception as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    finally:
+        xray_recorder.end_segment()
+
+def post_json(url, data, target):
+    headers = {
+        "Authorization": get_header(),
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    curr_url = request.host
+    segment = xray_recorder.begin_segment(name=curr_url)
+
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        response.raise_for_status()
+        return response.json() 
+    except requests.RequestException as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    except Exception as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    finally:
+        xray_recorder.end_segment()
+
+def put_json(url, data, target):
+    headers = {
+        "Authorization": get_header(),
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    curr_url = request.host
+    segment = xray_recorder.begin_segment(name=curr_url)
+
+    try:
+        response = requests.put(url, json=data, headers=headers)
+        response.raise_for_status()
+        return response.json()  
+    except requests.RequestException as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    except Exception as e:
+        segment.add_exception(e, traceback.format_exc())
+        raise
+    finally:
+        xray_recorder.end_segment()
+
+"""
+
 def send_json(url, method, target, datajson=None):
     headers = {
         "Authorization": get_header(),
@@ -66,30 +137,6 @@ def send_json_escape_unicode(url, method, target, datajson=None):
         logger.error(f"Error processing request: {e}")
         xray_recorder.end_segment()
         raise
-
-def get_json(url, target):
-    print("Target ", target)
-    headers = {
-        "Authorization": get_header(),
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
-
-    curr_url = request.host
-    segment = xray_recorder.begin_segment(name=curr_url)
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response
-    except requests.RequestException as e:
-        segment.add_exception(e, traceback.format_exc())
-        raise
-    except Exception as e:
-        segment.add_exception(e, traceback.format_exc())
-        raise
-    finally:
-        xray_recorder.end_segment()
 
 def get_json_wso2(url, target):
     headers = {
@@ -174,3 +221,4 @@ def get_xml2string(url):
         logger.error(f"Error processing request: {e}")
         xray_recorder.end_segment()
         raise
+"""

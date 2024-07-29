@@ -14,7 +14,7 @@ from models.firma import firmar
 from models.firma_electronica import ElectronicSign
 from models.utils import remove_duplicates
 from nuxeo.client import Nuxeo
-from xray.request_tools import get_json
+from xray.request_tools import get_json, post_json, put_json
 
 def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
     doc = nuxeo.documents.get(uid = uid)
@@ -50,7 +50,8 @@ def getOne(uid, nuxeo: Nuxeo):
         #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)
         url = str(os.environ['DOCUMENTOS_CRUD_URL']) + 'documento?query=Activo:true,Enlace:' + uid
         res_doc_crud = get_json(url, target=None)
-        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        #res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        res_json = res_doc_crud
         if str(res_json) != "[{}]":
             DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
             return Response(json.dumps(DicDoc), status=200, mimetype='application/json')
@@ -83,6 +84,7 @@ def post(body, nuxeo: Nuxeo):
         json : info documento
     """
     response_array = []
+    dictFromPost = {}
     try:
         data = body
         for i in range(len(data)):
@@ -99,7 +101,8 @@ def post(body, nuxeo: Nuxeo):
             res = get_json(url, target=None)
 
             if res.status_code == 200:
-                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                res_json = res
                 up_file = Document(
                 name = data[i]['nombre'],
                 type = res_json['TipoDocumentoNuxeo'],
@@ -133,9 +136,9 @@ def post(body, nuxeo: Nuxeo):
                     'TipoDocumento' :  res_json,
                     'Activo': True
                 }
-                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
-                #resPost = post_json(str(os.environ['DOCUMENTOS_CRUD_URL']) + '/documento', DicPostDoc)
-                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+                url = str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'
+                resPost = post_json(url, DicPostDoc, None)
+                dictFromPost = resPost  
                 response_array.append(dictFromPost)
             else:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
@@ -176,6 +179,7 @@ def postAny(body, nuxeo: Nuxeo):
         json : info documento
     """
     response_array = []
+    dictFromPost = {}
     try:
         data = body
         for i in range(len(data)):
@@ -187,10 +191,12 @@ def postAny(body, nuxeo: Nuxeo):
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
 
             IdDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento), target=None)
 
             if res.status_code == 200:
-                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                res_json = res
                 up_file = Document(
                 name = data[i]['nombre'],
                 type = res_json['TipoDocumentoNuxeo'],
@@ -223,8 +229,12 @@ def postAny(body, nuxeo: Nuxeo):
                     'TipoDocumento' :  res_json,
                     'Activo': True
                 }
-                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
-                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+                #resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+                #dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+                #response_array.append(dictFromPost)
+                url = str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'
+                resPost = post_json(url, DicPostDoc, None)
+                dictFromPost = resPost  
                 response_array.append(dictFromPost)
             else:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
@@ -307,8 +317,9 @@ def getAll(params, nuxeo: Nuxeo):
         listDocCrudErrors = []
         docCrudQueryCount = 0
         for url in urlsDocuments:
-            res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'+url+'&fields=Id,Enlace,Nombre&sortby=Id&order=asc')
-            res_doc_crud = res_doc_crud.content.decode('utf8')
+            #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'+url+'&fields=Id,Enlace,Nombre&sortby=Id&order=asc')
+            #res_doc_crud = res_doc_crud.content.decode('utf8')
+            res_doc_crud = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'+url+'&fields=Id,Enlace,Nombre&sortby=Id&order=asc', target=None)
             try:
                 res_json = obtener_respuesta(res_doc_crud)
                 if res_json != [{}]:
@@ -415,8 +426,9 @@ def postMetadata(uid, body, nuxeo: Nuxeo):
             DicStatus = {'Status':'invalid request body','Code':'400'}
             return Response(json.dumps(DicStatus), status=400, mimetype='application/json')        
 
-        res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
-        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
+        #res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        res_json = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid, target=None)
         if str(res_json) != "[{}]": 
             try:    
                 doc = nuxeo.documents.get(uid = uid)
@@ -465,8 +477,9 @@ def delete(uid, params, nuxeo: Nuxeo):
         if uid.count('-') != 4 or len(uid) != 36:                
             abort(400, description="invalid parameter")
 
-        res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
-        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        #res_doc_crud = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid)    
+        #res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+        res_json = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento?query=Activo:true,Enlace:'+uid, target=None)
         if str(res_json) != "[{}]":
             objeto = {
                 'Id': res_json[0]['Id'],
@@ -518,6 +531,7 @@ def postStoreDocument(body, nuxeo: Nuxeo):
         json : info documento
     """
     response_array = []
+    dictFromPost = {}
     try:
         data = body
         #Se hace un ciclo para iterar sobre el array que se recibe en formato json, se recibe uno normalmente
@@ -531,10 +545,12 @@ def postStoreDocument(body, nuxeo: Nuxeo):
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
 
             idTipoDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(idTipoDocumento))
+            #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(idTipoDocumento))
+            res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(idTipoDocumento), target=None)
 
             if res.status_code == 200:
-                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                res_json = res
                 up_file_to_nuxeo = Document(
                     name = data[i]['nombre'],
                     type = res_json['TipoDocumentoNuxeo'],
@@ -572,8 +588,12 @@ def postStoreDocument(body, nuxeo: Nuxeo):
                     'Activo':       True
                 }
                 
-                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=metadatos_to_documentos).content
-                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
+                #resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=metadatos_to_documentos).content
+                #dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
+                #response_array.append(dictFromPost)
+                url = str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento'
+                resPost = post_json(url, metadatos_to_documentos, None)
+                dictFromPost = resPost  
                 response_array.append(dictFromPost)
 
             else:
@@ -618,6 +638,7 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
         json : info documento
     """
     response_array = []
+    dictFromPost = {}
     try:
         data = body
         for i in range(len(data)):
@@ -628,12 +649,14 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 }
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
             IdDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
-            
+            #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento), target=None)
+
             if res.status_code != 200:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
 
-            res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+            #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+            res_json = res
             up_file = Document(
             name = data[i]['nombre'],
             type = res_json['TipoDocumentoNuxeo'],
@@ -661,8 +684,10 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 "firmantes": data[i]["firmantes"],
                 "representantes": data[i]["representantes"],
             }
-            resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
-            responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"'))
+            #resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+            #responsePostDoc = json.loads(resPost.decode('utf8').replace("'", '"'))
+            resPost = post_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', DicPostDoc, None)
+            responsePostDoc = resPost  
             firma_electronica = firmar(str(data[i]['file']))
 
             electronicSign = ElectronicSign()
@@ -676,8 +701,10 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
                 "DocumentoId": {"Id": responsePostDoc["Id"]},
             }
 
-            reqPostFirma = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica', json=objFirmaElectronica).content
-            responsePostFirma = json.loads(reqPostFirma.decode('utf8').replace("'", '"'))
+            #reqPostFirma = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica', json=objFirmaElectronica).content
+            #responsePostFirma = json.loads(reqPostFirma.decode('utf8').replace("'", '"'))
+            reqPostFirma = post_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica', objFirmaElectronica, None)
+            responsePostFirma = reqPostFirma 
 
             datos = {
                 "firma": responsePostFirma["Id"],
@@ -715,9 +742,12 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
             operation.params = {'document': str(file.uid)}
             operation.input_obj = uploaded
             operation.execute()
-            resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/' + str(responsePostDoc["Id"]), json=DicPostDoc).content
+            #resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/' + str(responsePostDoc["Id"]), json=DicPostDoc).content
 
-            dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+            #dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))
+            #response_array.append(dictFromPost)
+            resPost = put_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento/' + str(responsePostDoc["Id"]), DicPostDoc, None)
+            dictFromPost = resPost  
             response_array.append(dictFromPost)
 
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
@@ -762,12 +792,14 @@ def postVerify(body, nuxeo: Nuxeo):
         data = body
         for i in range(len(data)):
 
-            resFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
+            #resFirma = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]))
+            resFirma = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/firma_electronica/'+str(data[i]["firma"]), target=None)
 
             if resFirma.status_code != 200:
                 return Response(resFirma, resFirma.status_code, mimetype='application/json')
 
-            responseGetFirma = json.loads(resFirma.content.decode('utf8').replace("'", '"'))
+            #responseGetFirma = json.loads(resFirma.content.decode('utf8').replace("'", '"'))
+            responseGetFirma = resFirma
             firma = responseGetFirma["FirmaEncriptada"].encode()
 
             if "firma" not in responseGetFirma["DocumentoId"]["Metadatos"]:
@@ -799,6 +831,7 @@ def putUpdate(data, nuxeo: Nuxeo):
 
     '''
     response_array = []
+    dictFromPost = {}
     try:
         for i in range(len(data)):
             if len(str(data[i]['file'])) < 1000:
@@ -808,9 +841,11 @@ def putUpdate(data, nuxeo: Nuxeo):
                 }                
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
             IdTipoDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdTipoDocumento))
+            #res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdTipoDocumento))
+            res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdTipoDocumento), target=None)
             if res.status_code == 200:                
-                res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                #res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
+                res_json = res
                 up_file = Document(
                 name = data[i]['nombre'],
                 type = res_json['TipoDocumentoNuxeo'],
@@ -847,10 +882,13 @@ def putUpdate(data, nuxeo: Nuxeo):
                     'Activo': True
                 }
 
-                resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento/'+ str(data[i]['idDocumento']), json=DicPostDoc).content
-                dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
+                #resPost = requests.put(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento/'+ str(data[i]['idDocumento']), json=DicPostDoc).content
+                #dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
+                #response_array.append(dictFromPost)
+                resPost = put_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento/'+ str(data[i]['idDocumento']), DicPostDoc, None)
+                dictFromPost = resPost  
                 response_array.append(dictFromPost)
-                
+
             else:
                 return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
