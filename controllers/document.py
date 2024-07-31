@@ -181,7 +181,7 @@ def postAny(body, nuxeo: Nuxeo):
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
 
             IdDocumento = data[i]['IdTipoDocumento']
-            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/tipo_documento/'+str(IdDocumento))
+            res = requests.get(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento))
 
             if res.status_code == 200:                
                 res_json = json.loads(res.content.decode('utf8').replace("'", '"'))
@@ -217,7 +217,7 @@ def postAny(body, nuxeo: Nuxeo):
                     'TipoDocumento' :  res_json,
                     'Activo': True
                 }
-                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'/documento', json=DicPostDoc).content
+                resPost = requests.post(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento', json=DicPostDoc).content
                 dictFromPost = json.loads(resPost.decode('utf8').replace("'", '"'))                                        
                 response_array.append(dictFromPost)
             else:
