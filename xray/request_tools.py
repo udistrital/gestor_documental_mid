@@ -79,8 +79,15 @@ def put_json(url, data, target):
     segment = xray_recorder.begin_segment(name=curr_url)
 
     try:
+        print("ingresa al try")
+        print(data)
         response = requests.put(url, json=data, headers=headers)
+        print("14")
+        #response_decode = json.loads(response.decode('utf8').replace("'", '"')) 
+        print("decode")
+        print(response)
         response.raise_for_status()
+        print("finaliza al try")
         return response.json()  
     except requests.RequestException as e:
         segment.add_exception(e, traceback.format_exc())
@@ -90,135 +97,3 @@ def put_json(url, data, target):
         raise
     finally:
         xray_recorder.end_segment()
-
-"""
-
-def send_json(url, method, target, datajson=None):
-    headers = {
-        "Authorization": get_header(),
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
-    segment = xray_recorder.begin_segment(name='get_json')
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response
-    except requests.RequestException as e:
-        segment.add_exception(e, traceback.format_exc())
-        raise
-    except Exception as e:
-        segment.add_exception(e, traceback.format_exc())
-        raise
-    finally:
-        xray_recorder.end_segment()  # Finalizar el segmento
-
-def send_json_escape_unicode(url, method, target, datajson=None):
-    headers = {
-        "Authorization": get_header(),
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
-    segment = xray_recorder.begin_segment(name="send_json_escape_unicode")
-
-    try:
-        datajson = json.dumps(datajson, ensure_ascii=False) if datajson else None
-        response = requests.request(method, url, data=datajson, headers=headers)
-        response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response.json() if target is None else json.loads(response.text, object_hook=target)
-    except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
-        raise
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
-        raise
-
-def get_json_wso2(url, target):
-    headers = {
-        "Accept": "application/json"
-    }
-    segment = xray_recorder.begin_segment(name="get_json_wso2")
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response.json() if target is None else json.loads(response.text, object_hook=target)
-    except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
-        raise
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
-        raise
-
-def get_json_test(url, target):
-    headers = {
-        "Accept": "application/json"
-    }
-    segment = xray_recorder.begin_segment(name="get_json_test")
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response, json.loads(response.text, object_hook=target)
-    except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
-        raise
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
-        raise
-
-def get_xml(url, target):
-    headers = {
-        "Accept": "application/xml"
-    }
-    segment = xray_recorder.begin_segment(name="get_xml")
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response.text if target is None else xml.loads(response.text, object_hook=target)
-    except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
-        raise
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
-        raise
-
-def get_xml2string(url):
-    headers = {
-        "Accept": "application/xml"
-    }
-    segment = xray_recorder.begin_segment(name="get_xml2string")
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        xray_recorder.end_segment()
-
-        return response.text.strip()
-    except requests.RequestException as e:
-        logger.error(f"Error reading response: {e}")
-        xray_recorder.end_segment()
-        raise
-    except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        xray_recorder.end_segment()
-        raise
-"""

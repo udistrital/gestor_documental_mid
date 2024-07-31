@@ -102,14 +102,24 @@ def after_request(response):
     xray_recorder.end_segment()
     return response
 
-def begin_subsegment(name, method, url, status):
+def begin_subsegment(name):
+    return xray_recorder.begin_subsegment(name)
+
+def end_subsegment(error=None):
+    subsegment = xray_recorder.current_subsegment()
+    if subsegment:
+        if error:
+            subsegment.add_exception(error)
+        xray_recorder.end_subsegment()
+
+"""def begin_subsegment(name, method, url, status):
     return xray_recorder.begin_subsegment(name)
 
 def end_subsegment(subsegment, status, error=None):
     if error:
         subsegment.add_exception(error)
     subsegment.put_http_meta('response', {'status': status})
-    xray_recorder.end_subsegment()
+    xray_recorder.end_subsegment()"""
 
 def update_state(status, error):
     segment = getattr(g, 'segment', None)
