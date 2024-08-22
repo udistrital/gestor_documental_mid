@@ -1,8 +1,9 @@
 import traceback
 import requests
 import logging
-from aws_xray_sdk.core import xray_recorder
+#from aws_xray_sdk.core import xray_recorder
 from flask import request
+from xray.xray import get_xray_recorder
 
 # Importa la configuración de X-Ray
 #import xray
@@ -21,17 +22,17 @@ def set_header(header):
 def get_header():
     return global_header
 
-def get_json(url, target):
+xray_recorder = get_xray_recorder()
+
+def get_json(url):
     headers = {
         "Authorization": get_header(),
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
-
     curr_url = request.host
     segment = xray_recorder.begin_segment(name=curr_url)
-    status_code = ""
-
+    print(segment.id)
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
@@ -44,11 +45,11 @@ def get_json(url, target):
         raise
     finally:
         segment.put_http_meta('method', 'GET')
-        segment.put_http_meta('url', url)
+        segment.put_http_meta('url', request.url)
         segment.put_http_meta('status', response.status_code)
-        xray_recorder.end_segment()
+        #xray_recorder.end_segment()
 
-def post_json(url, data, target):
+def post_json(url, data):
     headers = {
         "Authorization": get_header(),
         "Accept": "application/json",
@@ -56,8 +57,10 @@ def post_json(url, data, target):
     }
 
     curr_url = request.host
+    segment = xray_recorder.current_segment()
+    print("ID segment ", segment)
     segment = xray_recorder.begin_segment(name=curr_url)
-
+    #subsegment.parent_id = 
     try:
         response = requests.post(url, json=data, headers=headers)
         response.raise_for_status()
@@ -70,9 +73,9 @@ def post_json(url, data, target):
         raise
     finally:
         segment.put_http_meta('method', 'POST')
-        segment.put_http_meta('url', url)
+        segment.put_http_meta('url', request.url)
         segment.put_http_meta('status', response.status_code)
-        xray_recorder.end_segment()
+        #xray_recorder.end_segment()
 
 def put_json(url, data, target):
     headers = {
@@ -96,6 +99,6 @@ def put_json(url, data, target):
         raise
     finally:
         segment.put_http_meta('method', 'PUT')
-        segment.put_http_meta('url', url)
+        segment.put_http_meta('url', request.host)
         segment.put_http_meta('status', response.status_code)
         xray_recorder.end_segment()
