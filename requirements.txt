@@ -12,3 +12,4 @@ pypdf
 pdfminer.six
 reportlab
 fillpdf
+https://github.com/udistrital/utils_python/releases/download/Instalacion/xray_python-0.1.0-py3-none-any.whl
