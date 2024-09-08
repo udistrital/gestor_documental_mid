@@ -310,8 +310,9 @@ def getAll(params, nuxeo: Nuxeo):
         docCrudQueryCount = 0
         for url in urlsDocuments:
             res_doc_crud = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento'+url+'&fields=Id,Enlace,Nombre&sortby=Id&order=asc', target=None)
+            res_doc_crud = res_doc_crud.content.decode('utf8')
             try:
-                res_json = obtener_respuesta(res_doc_crud.json())
+                res_json = obtener_respuesta(res_doc_crud)
                 if res_json != [{}]:
                     listUUIDS += res_json
                     docCrudQueryCount+=1
