@@ -271,4 +271,31 @@ class documentPostVerify(Resource):
                 Respuesta con cuerpo, status y en formato json
         """
         body = request.get_json()
-        return document.postVerify(body)
+        return document.postVerify(body, nuxeo)
+    
+    
+@documentNamespaceController.route('/putUpdate')
+class documentPutUpdate(Resource):
+    @documentDoc.doc(responses={
+        200: 'Success',
+        500: 'Nuxeo error',
+        400: 'Bad request'
+    },body=model_params['put_update_model'])
+    @documentNamespaceController.expect(model_params['request_parser'])
+    @cross_origin(**api_cors_config)
+    def put(self):
+        """
+            Permite subir documento pdf y modificar registro en BD.
+
+            Parameters
+            ----------
+            request : json
+                Json Body {Document}, Documento que será subido a nuxeo
+
+            Returns
+            -------
+            Response
+                Respuesta con cuerpo, status y en formato json
+        """
+        body=request.get_json()
+        return document.putUpdate(body, nuxeo)

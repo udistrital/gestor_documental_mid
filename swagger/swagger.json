@@ -83,6 +83,40 @@
                 ]
             }
         },
+        "/document/putUpdate": {
+            "put": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite subir documento pdf y modificar registro en BD",
+                "description": "Parameters\n----------\nrequest : json\n    Json Body {Document}, Documento que ser\u00e1 subido a nuxeo\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "put_document_put_update",
+                "parameters": [
+                    {
+                        "name": "payload",
+                        "required": true,
+                        "in": "body",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/put_update_resquest"
+                            }
+                        }
+                    }
+                ],
+                "tags": [
+                    "document"
+                ]
+            }
+        },
         "/document/store_document": {
             "post": {
                 "responses": {
@@ -229,6 +263,28 @@
                     "type": "string"
                 }
             ],
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "500": {
+                        "description": "Nuxeo error"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                },
+                "summary": "Permite consultar documento por uid",
+                "description": "Parameters\n----------\nrequest : uid\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
+                "operationId": "get_document_get_one__delete_one_/document/<string:uid>",
+                "tags": [
+                    "document"
+                ]
+            },
             "delete": {
                 "responses": {
                     "200": {
@@ -256,28 +312,6 @@
                         "default": false
                     }
                 ],
-                "tags": [
-                    "document"
-                ]
-            },
-            "get": {
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    },
-                    "500": {
-                        "description": "Nuxeo error"
-                    },
-                    "404": {
-                        "description": "Not found"
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    }
-                },
-                "summary": "Permite consultar documento por uid",
-                "description": "Parameters\n----------\nrequest : uid\n\nReturns\n-------\nResponse\n    Respuesta con cuerpo, status y en formato json",
-                "operationId": "get_document_get_one__delete_one_/document/<string:uid>",
                 "tags": [
                     "document"
                 ]
@@ -423,6 +457,29 @@
                 },
                 "username": {
                     "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "put_update_resquest": {
+            "properties": {
+                "IdTipoDocumento": {
+                    "type": "integer"
+                },
+                "nombre": {
+                    "type": "string"
+                },
+                "metadatos": {
+                    "type": "string"
+                },
+                "descripcion": {
+                    "type": "string"
+                },
+                "file": {
+                    "type": "string"
+                },
+                "idDocumento": {
+                    "type": "integer"
                 }
             },
             "type": "object"

@@ -3,10 +3,13 @@ from flask import Flask
 from conf import conf
 from routers import router
 from controllers import error
+from xray_python.xray import init_xray
 conf.checkEnv()
 
 nuxeo = conf.init_nuxeo()
 app = Flask(__name__)
+
+init_xray(app)
 
 router.addRouting(app, nuxeo)
 error.add_error_handler(app)
