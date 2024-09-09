@@ -50,7 +50,8 @@ def getOne(uid, nuxeo: Nuxeo):
         url = str(os.environ['DOCUMENTOS_CRUD_URL']) + 'documento?query=Activo:true,Enlace:' + uid
         print(url)
         res_doc_crud = get_json(url, target=None)
-        res_json = res_doc_crud.json()
+        res_doc_crud = res_doc_crud.content.decode('utf8')
+        res_json = obtener_respuesta(res_doc_crud)
         if str(res_json) != "[{}]":
             DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
             return Response(json.dumps(DicDoc), status=200, mimetype='application/json')
