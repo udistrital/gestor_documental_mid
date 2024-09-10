@@ -8,7 +8,7 @@ import yaml
 def healthCheck(nuxeo, app):
     try:
         if nuxeo.client.is_reachable():
-            data = json.loads(json.dumps(app.__schema__))            
+            data = json.loads(json.dumps(app.__schema__))
             with open('swagger/swagger.json', 'w') as jsonf:
                 jsonf.write(json.dumps(app.__schema__,indent=4))
 
