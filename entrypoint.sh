@@ -10,4 +10,4 @@ if [ -n "${PARAMETER_STORE:-}" ]; then
   export ENCRYPTION_KEY="$(aws ssm get-parameter --with-decryption --name /${PARAMETER_STORE}/gestor_documental_mid/nuxeo/encryption_key --output text --query Parameter.Value)"
 fi
 
-python api.py
+gunicorn api:app --bind 0.0.0.0:$API_PORT
