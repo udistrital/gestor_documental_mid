@@ -1,6 +1,6 @@
 workspace:
   base: /go
-  path: src/github.com/udistrital/${DRONE_REPO}
+  path: src/github.com/${DRONE_REPO}
   when:
       branch:
       - develop
@@ -64,7 +64,7 @@ steps:
         from_secret: AWS_SECRET_ACCESS_KEY
       region:
         from_secret: AWS_REGION
-      repo: ${DRONE_REPO}
+      repo: ${DRONE_REPO_NAME}
       tags:
         - ${DRONE_COMMIT:0:7}
         - release
@@ -83,7 +83,7 @@ steps:
         from_secret: AWS_SECRET_ACCESS_KEY
       region:
         from_secret: AWS_REGION
-      repo: ${DRONE_REPO}
+      repo: ${DRONE_REPO_NAME}
       tags:
         - ${DRONE_COMMIT:0:7}
         - latest
