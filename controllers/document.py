@@ -39,12 +39,9 @@ def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
 
         blob64 = base64.b64encode(obj)
 
-        return {
-            'created': doc.properties.get('dc:created'),
-            'file': str(blob64).replace("b'","'").replace("'",""),
-            'modified': doc.properties.get('dc:modified'),
-            'title': doc.properties.get('dc:title'),
-        }
+        DicRes = doc.properties
+        DicRes['file'] = str(blob64).replace("b'","'").replace("'","")
+        return DicRes
     else:
         raise Exception("no file content found for this document.")
 
