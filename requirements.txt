@@ -1,5 +1,6 @@
 setuptools >= 30.3.0
 requests >= 2.12.2
+boto3
 Flask
 gunicorn
 flask-restx
