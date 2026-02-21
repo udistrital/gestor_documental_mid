@@ -4,6 +4,7 @@ import base64
 import json
 import logging
 import os
+import boto3
 import time
 from flask import Response, abort, request
 import requests
@@ -16,13 +17,50 @@ from models.utils import remove_duplicates
 from nuxeo.client import Nuxeo
 from xray_python.request_tools import get_json, post_json, put_json
 
+bucket=str(os.environ['BUCKET_NAME'])
+
 def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
-    doc = nuxeo.documents.get(uid = uid)
-    DicRes = doc.properties
-    blob_get = doc.fetch_blob()
-    blob64 = base64.b64encode(blob_get)
-    DicRes['file'] = str(blob64).replace("b'","'").replace("'","")
-    return DicRes
+    try:
+        logging.info(f"getting document with UID: {uid}")
+        doc = nuxeo.documents.get(uid=uid)
+    except Exception as e:
+        logging.error(f"error fetching document with UID {uid}: {e}")
+        raise Exception("Error fetching document: " + str(e))
+
+    file_content = doc.properties.get("file:content")
+
+    if file_content:
+        # extract S3 key
+        blob_key = file_content.get("digest")
+        obj = get_document_from_s3(blob_key)
+
+        if obj is None:
+            raise Exception(f"S3 object not found for key: {blob_key}")
+
+        blob64 = base64.b64encode(obj)
+
+        return {
+            'created': doc.properties.get('dc:created'),
+            'file': str(blob64).replace("b'","'").replace("'",""),
+            'modified': doc.properties.get('dc:modified'),
+            'title': doc.properties.get('dc:title'),
+        }
+    else:
+        raise Exception("no file content found for this document.")
+
+
+def get_document_from_s3(s3_key: str):
+    s3 = boto3.client('s3')
+
+    try:
+        response = s3.get_object(Bucket=bucket, Key=s3_key)
+        file_content = response['Body'].read()
+
+        return file_content
+    except Exception as e:
+        logging.error(f"error fetching object s3://{bucket}/{s3_key}: {e}")
+        return None
+
 
 def getOne(uid, nuxeo: Nuxeo):
     """
