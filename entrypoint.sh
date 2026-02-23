@@ -4,4 +4,8 @@ set -e
 set -u
 set -o pipefail
 
-gunicorn api:app --bind 0.0.0.0:$API_PORT
+exec gunicorn api:app \
+  --access-logfile - \
+  --error-logfile - \
+  --log-level debug \
+  --bind 0.0.0.0:$API_PORT
