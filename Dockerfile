@@ -1,7 +1,5 @@
 FROM python:3.8
 
-RUN pip install awscli
-
 COPY entrypoint.sh entrypoint.sh
 
 RUN chmod +x entrypoint.sh
@@ -31,5 +29,3 @@ COPY routers/** /routers/
 COPY swagger/** /swagger/
 
 ADD api.py .
-
-#CMD [ "python", "./api.py" ]
