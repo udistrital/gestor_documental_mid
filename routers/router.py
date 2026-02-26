@@ -23,7 +23,7 @@ CORS(healthCheckController)
 
 @healthCheckController.route('/')
 def _():
-    return healthCheck.healthCheck(nuxeo, documentDoc)
+    return healthCheck.health_check()
 
 
 documentController = Blueprint('documentController', __name__)
