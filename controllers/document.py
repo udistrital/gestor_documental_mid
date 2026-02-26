@@ -6,7 +6,7 @@ import logging
 import os
 import boto3
 import time
-from flask import Response, abort, request
+from flask import Response, abort, request, g
 import requests
 from nuxeo.models import Document, FileBlob
 from nuxeo.exceptions import UploadError
@@ -18,14 +18,15 @@ from nuxeo.client import Nuxeo
 from xray_python.request_tools import get_json, post_json, put_json
 
 bucket=str(os.environ['BUCKET_NAME'])
+logger = logging.getLogger(__name__)
 
 def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
     try:
-        logging.info(f"getting document with UID: {uid}")
         doc = nuxeo.documents.get(uid=uid)
     except Exception as e:
-        logging.error(f"error fetching document with UID {uid}: {e}")
-        raise Exception("Error fetching document: " + str(e))
+        mensaje = f"Error al obtener el documento con UID {uid}: {str(e)}"
+        logger.exception(mensaje)
+        raise Exception(mensaje)
 
     file_content = doc.properties.get("file:content")
 
@@ -35,7 +36,7 @@ def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
         obj = get_document_from_s3(blob_key)
 
         if obj is None:
-            raise Exception(f"S3 object not found for key: {blob_key}")
+            raise Exception(f"No se encontró el objeto S3 para la clave: {blob_key}")
 
         blob64 = base64.b64encode(obj)
 
@@ -43,7 +44,9 @@ def getDocumentoNuxeoFormatted(uid, nuxeo: Nuxeo):
         DicRes['file'] = str(blob64).replace("b'","'").replace("'","")
         return DicRes
     else:
-        raise Exception("no file content found for this document.")
+        mensaje = "No se encontró contenido de archivo para este documento"
+        logger.exception(mensaje)
+        raise Exception(mensaje)
 
 
 def get_document_from_s3(s3_key: str):
@@ -55,7 +58,7 @@ def get_document_from_s3(s3_key: str):
 
         return file_content
     except Exception as e:
-        logging.error(f"error fetching object s3://{bucket}/{s3_key}: {e}")
+        logger.exception(f"Error al obtener el objeto s3://{bucket}/{s3_key}: {e}")
         return None
 
 
@@ -74,32 +77,44 @@ def getOne(uid, nuxeo: Nuxeo):
         ----------
         json : documento en base64 y propiedades
     """
+    g.uid = uid
     try:
         resource = uid
         if resource is None:
-            abort(404, description="Not found resource")
+            desc = f"El uid={uid} no tiene datos."
+            logger.warning(desc)
+            abort(404, description=desc)
 
         if uid.count('-') != 4 or len(uid) != 36:
-            abort(400, description="invalid parameter")
+            desc = f"El uid={uid} es invalido."
+            logger.warning(desc)
+            abort(404, description=desc)
 
         url = str(os.environ['DOCUMENTOS_CRUD_URL']) + 'documento?query=Activo:true,Enlace:' + uid
-        print(url)
-        res_doc_crud = get_json(url, target=None)
-        res_doc_crud = res_doc_crud.content.decode('utf8')
-        res_json = obtener_respuesta(res_doc_crud)
+
+        # Con xray
+        #res_doc_crud = get_json(url, target=None)
+        #res_json = res_doc_crud.json()
+
+        # Sin xray
+        res_doc_crud = requests.get(url)
+        res_json = json.loads(res_doc_crud.content.decode('utf8').replace("'", '"'))
+
         if str(res_json) != "[{}]":
+            logger.info(f"Se encontro el documento {uid}")
             DicDoc = getDocumentoNuxeoFormatted(uid, nuxeo)
             return Response(json.dumps(DicDoc), status=200, mimetype='application/json')
         else:
             DicStatus = {
-                'Status':'document not found',
+                'Status':'Documento no encontrado',
                 'Code':'404'
             }
+            logger.warning(DicStatus)
             return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
     except Exception as e:
-        logging.error("type error: " + str(e))
+        logger.exception("Genero el siguiente error: " + str(e))
         if '400' in str(e):
-            DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
+            DicStatus = {'Status':'El parametro uid es invalido', 'Code':'400'}
             return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
         return Response(json.dumps({'Status':'500','Error':str(e)}), status=500, mimetype='application/json')
 
@@ -178,7 +193,7 @@ def post(body, nuxeo: Nuxeo):
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
     except Exception as e:            
-            logging.error("type error: " + str(e))
+            logger.exception("Genero el siguiente error: " + str(e))
             if str(e) == "'IdTipoDocumento'":
                 error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
@@ -269,7 +284,7 @@ def postAny(body, nuxeo: Nuxeo):
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
     except Exception as e:            
-            logging.error("type error: " + str(e))
+            logger.exception("Genero el siguiente error: " + str(e))
 
             if str(e) == "'IdTipoDocumento'":
                 error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
@@ -425,7 +440,7 @@ def getAll(params, nuxeo: Nuxeo):
                     return Response(json.dumps(DicStatus), status=200, mimetype='application/json')
             
     except Exception as e:
-        logging.error("type error: " + str(e))
+        logger.exception("Genero el siguiente error: " + str(e))
         return Response(json.dumps({'Status':'Internal Error', 'Code':'500', 'Error':str(e)}), status=500, mimetype='application/json')
     
 def postMetadata(uid, body, nuxeo: Nuxeo):
@@ -462,13 +477,13 @@ def postMetadata(uid, body, nuxeo: Nuxeo):
                 doc.save()
                 return Response(json.dumps({'Status':'200'}), status=200, mimetype='application/json')
             except Exception as e:
-                logging.error("type error: " + str(e))
+                logger.exception("Genero el siguiente error: " + str(e))
                 return Response(json.dumps({'Status':'500'}), status=500, mimetype='application/json')
         else:
             DicStatus = {'Status':'document not found', 'Code':'404'}
             return Response(json.dumps(DicStatus), status=404, mimetype='application/json')            
     except Exception as e:            
-        logging.error("type error: " + str(e))
+        logger.exception("Genero el siguiente error: " + str(e))
         if 'invalid parameter' in str(e):
             DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
             return Response(json.dumps(DicStatus), status=400, mimetype='application/json')
@@ -532,7 +547,7 @@ def delete(uid, params, nuxeo: Nuxeo):
             }
             return Response(json.dumps(DicStatus), status=404, mimetype='application/json')
     except Exception as e:
-        logging.error("type error: " + str(e))
+        logger.exception("Genero el siguiente error: " + str(e))
         if '400' in str(e):
             DicStatus = {'Status':'invalid uid parameter', 'Code':'400'}
             return Response(json.dumps(DicStatus), status=400, mimetype='application/json')            
@@ -621,7 +636,7 @@ def postStoreDocument(body, nuxeo: Nuxeo):
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
     
     except Exception as exception:
-            logging.error("type error: " + str(exception))
+            logger.exception("Genero el siguiente error: " + str(exception))
             if str(exception) == "'IdTipoDocumento'":
                 error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
@@ -761,8 +776,7 @@ def postFirmaElectronica(body, nuxeo: Nuxeo):
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
     except Exception as e:
-            logging.error("type error: " + str(e))
-
+            logger.exception("Genero el siguiente error: " + str(e))
             if str(e) == "'IdTipoDocumento'":
                 error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
@@ -822,7 +836,7 @@ def postVerify(body, nuxeo: Nuxeo):
 
         return Response(json.dumps({'Status':'200', 'res':response_array}), status=200, mimetype='application/json')
     except Exception as e:
-            logging.error("type error: " + str(e))
+            logger.exception("Genero el siguiente error: " + str(e))
             if str(e) == "'firma'":
                 error_dict = {'Status':'the field firma is required','Code':'400'}
                 return Response(json.dumps(error_dict), status=400, mimetype='application/json')
@@ -896,7 +910,7 @@ def putUpdate(data, nuxeo: Nuxeo):
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
 
     except Exception as e:
-        logging.error("type error: " + str(e))
+        logger.exception("Genero el siguiente error: " + str(e))
         if str(e) == "'IdTipoDocumento'":
             error_dict = {'Status':'the field IdTipoDocumento is required','Code':'400'}                
             return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
