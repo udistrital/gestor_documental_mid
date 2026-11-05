@@ -6,10 +6,11 @@ import logging
 import os
 import boto3
 import time
+import tempfile
 from flask import Response, abort, request, g
 import requests
 from nuxeo.models import Document, FileBlob
-from nuxeo.exceptions import UploadError
+from nuxeo.exceptions import NuxeoError, UploadError
 from models.eval_doc_crud_res import obtener_respuesta
 from models.firma import firmar
 from models.firma_electronica import ElectronicSign
@@ -228,47 +229,98 @@ def postAny(body, nuxeo: Nuxeo):
     """
     response_array = []
     dictFromPost = {}
-    try:            
+    try:
         data = body
         for i in range(len(data)):
-            if len(str(data[i]['file'])) < 1000:
-                error_dict = {
-                    'Status':'invalid pdf file',
-                    'Code':'400'
-                }                
-                return Response(json.dumps(error_dict), status=400, mimetype='application/json')            
+            temp_path = None
+            batch = None
+            nuxeo_document = None
+            item_completed = False
+            crud_started = False
+            upload_started = time.monotonic()
 
-            IdDocumento = data[i]['IdTipoDocumento']
-            res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento), target=None)
+            try:
+                if len(str(data[i]['file'])) < 1000:
+                    error_dict = {
+                        'Status':'invalid file',
+                        'Code':'400'
+                    }
+                    return Response(json.dumps(error_dict), status=400, mimetype='application/json')
 
-            if res.status_code == 200:                
+                IdDocumento = data[i]['IdTipoDocumento']
+                res = get_json(str(os.environ['DOCUMENTOS_CRUD_URL'])+'tipo_documento/'+str(IdDocumento), target=None)
+
+                if res.status_code != 200:
+                    return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
+
                 res_json = res.json()
-                up_file = Document(
-                name = data[i]['nombre'],
-                type = res_json['TipoDocumentoNuxeo'],
-                properties={
-                    'dc:title': data[i]['nombre'],
-                })
-                file = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
-                # Create a batch
-                batch = nuxeo.uploads.batch()
                 blob = base64.b64decode(data[i]['file'])
-                filePath = 'document.' + data[i]['nombre'].split(".")[-1]
-                with open(os.path.expanduser('./documents/'+ filePath), 'wb') as fout:
+                original_name = os.path.basename(data[i]['nombre'])
+                extension = os.path.splitext(original_name)[1]
+                with tempfile.NamedTemporaryFile(prefix='gestor-documental-', suffix=extension, delete=False) as fout:
+                    temp_path = fout.name
                     fout.write(blob)
+
+                logger.info(
+                    "Nuxeo upload started: item=%s bytes=%s extension=%s",
+                    i,
+                    len(blob),
+                    extension.lower()
+                )
+
                 try:
-                    uploaded = batch.upload(FileBlob('./documents/'+ filePath), chunked=True)
-                except UploadError:
-                    return Response(json.dumps({'Status':'500','Error':UploadError}), status=200, mimetype='application/json')
-                # Attach it to the file
+                    batch = nuxeo.uploads.batch()
+                    file_blob = FileBlob(temp_path)
+                    file_blob.name = original_name
+                    for upload_attempt in range(1, 4):
+                        try:
+                            uploaded = batch.upload(file_blob, chunked=True)
+                            break
+                        except (UploadError, requests.RequestException) as exc:
+                            if upload_attempt == 3:
+                                raise
+                            logger.warning(
+                                "Nuxeo upload interrupted; resuming batch: item=%s attempt=%s error=%s",
+                                i,
+                                upload_attempt,
+                                exc
+                            )
+                except (NuxeoError, requests.RequestException):
+                    logger.exception(
+                        "Nuxeo upload failed: item=%s bytes=%s elapsed_seconds=%.3f",
+                        i,
+                        len(blob),
+                        time.monotonic() - upload_started
+                    )
+                    return Response(
+                        json.dumps({'Status':'502', 'Error':'Nuxeo upload failed'}),
+                        status=502,
+                        mimetype='application/json'
+                    )
+
+                logger.info(
+                    "Nuxeo upload completed: item=%s bytes=%s elapsed_seconds=%.3f",
+                    i,
+                    len(blob),
+                    time.monotonic() - upload_started
+                )
+
+                up_file = Document(
+                    name=data[i]['nombre'],
+                    type=res_json['TipoDocumentoNuxeo'],
+                    properties={
+                        'dc:title': data[i]['nombre'],
+                    }
+                )
+                nuxeo_document = nuxeo.documents.create(up_file, parent_path=str(res_json['Workspace']))
                 operation = nuxeo.operations.new('Blob.AttachOnDocument')
-                operation.params = {'document': str(file.uid)}
+                operation.params = {'document': str(nuxeo_document.uid)}
                 operation.input_obj = uploaded
-                operation.execute()        
+                operation.execute()
                 firma_electronica = firmar(str(data[i]['file']))
                 all_metadata = str({** firma_electronica, ** data[i]['metadatos']}).replace("{'", '{\\"').replace("': '", '\\":\\"').replace("': ", '\\":').replace(", '", ',\\"').replace("',", '",').replace('",' , '\\",').replace("'}", '\\"}').replace('\\"', '\"')
                 DicPostDoc = {
-                    'Enlace' : str(file.uid),
+                    'Enlace' : str(nuxeo_document.uid),
                     'Metadatos' : all_metadata,
                     'Nombre' : data[i]['nombre'],
                     "Descripcion": data[i]['descripcion'],
@@ -276,11 +328,36 @@ def postAny(body, nuxeo: Nuxeo):
                     'Activo': True
                 }
                 url = str(os.environ['DOCUMENTOS_CRUD_URL'])+'documento'
+                crud_started = True
                 resPost = post_json(url, DicPostDoc, None)
-                dictFromPost = resPost  
+                dictFromPost = resPost
                 response_array.append(dictFromPost)
-            else:
-                return Response(json.dumps({'Status':'404','Error': str("the id "+str(data[i]['IdTipoDocumento'])+" does not exist in documents_crud")}), status=404, mimetype='application/json')
+                item_completed = True
+                logger.info(
+                    "Document upload completed: item=%s bytes=%s elapsed_seconds=%.3f",
+                    i,
+                    len(blob),
+                    time.monotonic() - upload_started
+                )
+            finally:
+                if temp_path:
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        logger.exception("Could not remove upload temporary file: item=%s", i)
+
+                if not item_completed and not crud_started and nuxeo_document is not None:
+                    try:
+                        nuxeo.documents.delete(nuxeo_document.uid)
+                    except Exception:
+                        logger.exception("Could not roll back Nuxeo document: item=%s", i)
+
+                if not item_completed and batch is not None:
+                    try:
+                        batch.cancel()
+                    except Exception:
+                        logger.exception("Could not cancel Nuxeo upload batch: item=%s", i)
+
         dictFromPost = response_array if len(response_array) > 1 else dictFromPost
         return Response(json.dumps({'Status':'200', 'res':dictFromPost}), status=200, mimetype='application/json')
     except Exception as e:            
