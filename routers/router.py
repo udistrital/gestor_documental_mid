@@ -112,6 +112,7 @@ class documentPost(Resource):
 class documentPostAnyFormat(Resource):
     @documentDoc.doc(responses={
         200: 'Success',
+        502: 'Nuxeo upload error',
         500: 'Nuxeo error',
         400: 'Bad request'
     }, body=model_params['upload_model'])
