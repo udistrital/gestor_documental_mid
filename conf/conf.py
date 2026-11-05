@@ -2,6 +2,7 @@ from nuxeo.client import Nuxeo
 import os
 import sys
 import boto3
+from urllib3.util.retry import Retry
 
 # Environmen variables list
 variables = ['API_PORT', 'PARAMETER_STORE', 'NUXEO_URL', 'BUCKET_NAME', 'DOCUMENTOS_CRUD_URL']
@@ -28,7 +29,16 @@ def init_nuxeo():
     nuxeo_username = get_param(f"/{parameter_store}/gestor_documental_mid/nuxeo/username")
     nuxeo_password = get_param(f"/{parameter_store}/gestor_documental_mid/nuxeo/password")
 
+    retries = Retry(
+      total=2,
+      backoff_factor=1,
+      allowed_methods=frozenset(['GET', 'HEAD', 'OPTIONS', 'PUT', 'DELETE']),
+      status_forcelist=[429, 500, 503, 504],
+      raise_on_status=False
+    )
+
     return Nuxeo(
       host=str(os.environ['NUXEO_URL']),
-      auth=(nuxeo_username, nuxeo_password)
+      auth=(nuxeo_username, nuxeo_password),
+      retries=retries
     )
