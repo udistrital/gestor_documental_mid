@@ -26,6 +26,25 @@ steps:
       event:
       - push
 
+  - name: publish_to_ecr_release
+    image: plugins/ecr
+    settings:
+      access_key:
+        from_secret: AWS_ACCESS_KEY_ID
+      secret_key:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      region:
+        from_secret: AWS_REGION
+      repo: ${DRONE_REPO_NAME}
+      tags:
+        - ${DRONE_COMMIT:0:7}
+        - release
+    when:
+      branch:
+      - release/*
+      event:
+      - push
+
   - name: publish_to_ecr_master
     image: plugins/ecr
     settings:
